@@ -1,6 +1,5 @@
-var fs = require('fs'),
-    util = require('./lib/util.js'),
-    ByteArray = util.ByteArray;
+var fs = require('fs')
+  , util = require('./lib/util.js')
 
 var ByteArray = function(bytes){
   if (!(this instanceof ByteArray)) return new ByteArray(bytes);
@@ -8,15 +7,15 @@ var ByteArray = function(bytes){
 }
 ByteArray.prototype = new Array;
 ByteArray.prototype.is = function(otherArray){
-  for (var i = otherArray.length; i > 0; --i) 
+  for (var i = otherArray.length; i > 0; --i)
     if (otherArray[i] !== this[i]) return false;
   return true;
 }
 ByteArray.prototype.to32Int = function() {
-  var x = 3, intsum = 0;
-  for (var i = 0; i <= x; i++)
-    intsum += Math.pow(256, (x-i)) * this[i];
-  return intsum;
+  var x = 3, sum = 0, i = 0;
+  for (; i <= x; i++)
+    sum += Math.pow(256, (x-i)) * this[i];
+  return sum;
 }
 ByteArray.prototype.pushBytes = function(bytes) {
   Array.prototype.push.apply(this, Array.prototype.slice.call(Buffer(bytes)));
@@ -32,12 +31,14 @@ var Reader = function(source) {
   this.chunks = null;
 }
 Reader.prototype.getContents = function() {
-  var source = this.source;
+  var source = this.source
+    , len = null
+    , buf = null
   if (Buffer.isBuffer(source))
     return this.data = source;
   else if ('number' === typeof source) {
-    var len = fs.fstatSync(source).size;
-    var buf = Buffer(len);
+    len = fs.fstatSync(source).size
+    buf = Buffer(len);
     fs.readSync(source, buf, 0, len);
     return this.data = buf;
   }
@@ -61,7 +62,8 @@ Reader.prototype.peek = function(len) {
   return this.data.slice(this.cursor, (this.cursor + len));
 }
 Reader.prototype.readChunks = function() {
-  var magic_nom_nom, chunk;
+  var magic_nom_nom
+    , chunk;
   this.chunks = [];
   this.rewind();
   magic_nom_nom = this.eat(8)
@@ -94,9 +96,8 @@ function Writer(source) {
 }
 Writer.prototype = new Reader;
 Writer.prototype.chunk = function(type, data) {
-  var body = ByteArray(),
-      chunk = ByteArray();
-
+  var body = ByteArray()
+    , chunk = ByteArray()
   body
     .pushBytes(type)
     .pushBytes(data);
@@ -104,11 +105,11 @@ Writer.prototype.chunk = function(type, data) {
     .pushBytes(util.intToBytes(data.length))
     .pushBytes(body)
     .pushBytes(util.intToBytes(util.crc32(body)));
-  
+
   return Buffer(chunk);
 }
 Writer.prototype.tEXt = function(keyword, data) {
-  return this.chunk('tEXt', [keyword, data].join('\u0000'));
+  return this.chunk('tEXt', [keyword, data].join("\u0000"));
 }
 
 exports.Reader = Reader;
@@ -117,12 +118,11 @@ exports.read = function(src, key){
   return textChunks;
 };
 exports.write = function(src, key, data) {
-  var writer = Writer(src);
-  var ihdr_end = writer.findByType('IHDR').pop().end;
-  var chunk = writer.tEXt(key, data);
-  var len = writer.data.length + chunk.length;
-  
-  var buf = Buffer(len);
+  var writer = Writer(src)
+    , ihdr_end = writer.findByType('IHDR').pop().end
+    , chunk = writer.tEXt(key, data)
+    , len = writer.data.length + chunk.length
+    , buf = Buffer(len)
   writer.data.copy(buf, 0, 0, ihdr_end);
   chunk.copy(buf, ihdr_end)
   writer.data.copy(buf, (ihdr_end + chunk.length), ihdr_end)
