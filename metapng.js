@@ -21,17 +21,13 @@ ByteArray.prototype.pushBytes = function(bytes) {
   Array.prototype.push.apply(this, Array.prototype.slice.call(Buffer(bytes)));
 }
 
-// PNG magic number
-const MAGIC_NUMBER = ByteArray([137, 80, 78, 71, 13, 10, 26, 10]);
-var Reader = function(source, keyword, callback) {
-  if (!(this instanceof Reader)) return new Reader(source, keyword, callback);
-  if ('function' === typeof keyword) callback = keyword, keyword = null;
+const PNG_MAGIC_NUMBER = ByteArray([137, 80, 78, 71, 13, 10, 26, 10]);
+var Reader = function(source) {
+  if (!(this instanceof Reader)) return new Reader(source);
   this.source = source;
-  this.keyword = keyword;
-  this.callback = callback;
   this.data = this.getContents(source);
   this.cursor = 0;
-  this.async = ('function' === typeof callback)
+  this.chunks = null;
 }
 Reader.prototype.getContents = function(source) {
   if (Buffer.isBuffer(source))
@@ -39,33 +35,60 @@ Reader.prototype.getContents = function(source) {
   if ('number' === typeof source) {
     var len = fs.fstatSync(source).size;
     var buf = Buffer(len);
-    return fs.readSync(source, buf, 0, len);
+    fs.readSync(source, buf, 0, len);
+    return buf;
   }
   if ('string' === typeof source) {
     return fs.readFileSync(source);
   }
   throw "unrecognized source. must be filename, file descriptor or buffer";
 }
-Reader.prototype.get_tEXts = function() {
-  return [1,2,3];
+Reader.prototype.rewind = function(len){
+  if (!len) this.cursor = 0;
+  else { this.cursor -= len }
+  if (this.cursor < 0) this.cursor = 0;;
+}
+Reader.prototype.eat = function(len) {
+  var buf = this.peek(len);
+  this.cursor += len;
+  return buf;
+}
+Reader.prototype.peek = function(len) {
+  return this.data.slice(this.cursor, (this.cursor + len));
+}
+Reader.prototype.readChunks = function() {
+  var magic_nom_nom, chunk;
+  this.chunks = [];
+  this.rewind();
+  magic_nom_nom = this.eat(8)
+  if (!PNG_MAGIC_NUMBER.is(magic_nom_nom)) throw "this is not a PNG";
+  while (chunk = this.readNextChunk()) this.chunks.push(chunk);
+}
+Reader.prototype.readNextChunk = function() {
+  if (this.cursor === this.data.length) return null;
+  // order is important here.
+  var start = this.cursor
+    , len = ByteArray(this.eat(4)).to32Int()
+    , type = this.eat(4).toString()
+    , data = this.eat(len)
+    , crc = this.eat(4)
+    , end = this.cursor
+  return {start: start, len: len, type: type, data: data, crc: crc, end: end}
+}
+Reader.prototype.findByType = function(type) {
+  if (!this.chunks) this.readChunks()
+  return this.chunks.filter(function(chunk){
+    return (chunk.type === type)
+  });
 }
 
-
-var __read = function(src, key, cb){ return Reader(src, key, cb).get_tEXts() };
-exports.read = exports.readSync = __read;
+exports.Reader = Reader;
+exports.read = function(src, key){
+  var tEXtchunks = Reader(src).findByType('tEXt');
+  console.dir(tEXtchunks);
+};
 
 /*
-
-// global seek cursor
-var CURSOR = 0
-
-// get that data
-var DATA = fs.readFileSync(FILENAME);
-
-// make sure first 8 bytes are [137 80 78 71 13 10 26 10]
-if (!MAGIC.is(DATA.slice(0, (CURSOR += 8)))) throw "not a png";
-
-// begin parsing at 8th byte
 var IHDR_ENDPOS = null;
 var tEXt_POS = [];
 
