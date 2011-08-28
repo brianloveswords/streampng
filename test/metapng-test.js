@@ -1,7 +1,8 @@
 var vows = require('vows'),
     assert = require('assert'),
     fs = require('fs'),
-    metapng = require('../metapng.js')
+    metapng = require('../metapng.js'),
+    path = require('path');
 
 // sync read -- explicit
 // var tEXt = [];
@@ -19,7 +20,7 @@ var vows = require('vows'),
 // metapng.read(fd, [keyword], this.callback)
 // metapng.read(buffer, [keyword], this.callback)
 
-var testfile = 'test.png';
+var testfile = path.join(__dirname, 'test.png');
 vows.describe('metapng').addBatch({
   'Should be able to read synchronously explicitly': { 
     topic: function(){ return metapng.readSync },

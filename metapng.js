@@ -1,28 +1,16 @@
 var fs = require('fs'),
     util = require('./lib/util.js');
 
-var FILENAME = process.ARGV[2];
-var OUTPUT = process.ARGV[3];
-
-if (!FILENAME) throw "need a file here";
- 
-
 var ByteArray = function(bytes){
-  // make sure we're creating a new object
   if (!(this instanceof ByteArray)) return new ByteArray(bytes);
-  
-  // do the turn-any-iterable-into-array dance, using buffer to give me bytes first.
-  if (bytes) { this.pushBytes(Buffer(bytes)); }
+  if (bytes) { this.pushBytes(bytes); }
 }
-// inherit from array
 ByteArray.prototype = new Array;
-// does this byte array contain the same values as another iterable?
 ByteArray.prototype.is = function(otherArray){
   for (var i = otherArray.length; i > 0; --i) 
     if (otherArray[i] !== this[i]) return false;
   return true;
 }
-// big endian
 ByteArray.prototype.to32Int = function() {
   var x = 3, intsum = 0;
   for (var i = 0; i <= x; i++)
@@ -34,7 +22,39 @@ ByteArray.prototype.pushBytes = function(bytes) {
 }
 
 // PNG magic number
-const MAGIC = ByteArray([137, 80, 78, 71, 13, 10, 26, 10]);
+const MAGIC_NUMBER = ByteArray([137, 80, 78, 71, 13, 10, 26, 10]);
+var Reader = function(source, keyword, callback) {
+  if (!(this instanceof Reader)) return new Reader(source, keyword, callback);
+  if ('function' === typeof keyword) callback = keyword, keyword = null;
+  this.source = source;
+  this.keyword = keyword;
+  this.callback = callback;
+  this.data = this.getContents(source);
+  this.cursor = 0;
+  this.async = ('function' === typeof callback)
+}
+Reader.prototype.getContents = function(source) {
+  if (Buffer.isBuffer(source))
+    return source;
+  if ('number' === typeof source) {
+    var len = fs.fstatSync(source).size;
+    var buf = Buffer(len);
+    return fs.readSync(source, buf, 0, len);
+  }
+  if ('string' === typeof source) {
+    return fs.readFileSync(source);
+  }
+  throw "unrecognized source. must be filename, file descriptor or buffer";
+}
+Reader.prototype.get_tEXts = function() {
+  return [1,2,3];
+}
+
+
+var __read = function(src, key, cb){ return Reader(src, key, cb).get_tEXts() };
+exports.read = exports.readSync = __read;
+
+/*
 
 // global seek cursor
 var CURSOR = 0
@@ -138,3 +158,4 @@ var fstream = fs.createWriteStream(OUTPUT);
 fstream.write(DATA.slice(0, IHDR_ENDPOS));
 fstream.write(badgeData);
 fstream.end(DATA.slice(IHDR_ENDPOS));
+*/
