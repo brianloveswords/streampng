@@ -20,6 +20,7 @@ ByteArray.prototype.to32Int = function() {
 }
 ByteArray.prototype.pushBytes = function(bytes) {
   Array.prototype.push.apply(this, Array.prototype.slice.call(Buffer(bytes)));
+  return this;
 }
 
 const PNG_MAGIC_NUMBER = ByteArray([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -96,20 +97,18 @@ Writer.prototype.chunk = function(type, data) {
   var body = ByteArray(),
       chunk = ByteArray();
 
-  body.pushBytes(type);
-  body.pushBytes(data);
-    
-  chunk.pushBytes(util.intToBytes(data.length));
-  chunk.pushBytes(body);
-  chunk.pushBytes(util.intToBytes(util.crc32(body)));
+  body
+    .pushBytes(type)
+    .pushBytes(data);
+  chunk
+    .pushBytes(util.intToBytes(data.length))
+    .pushBytes(body)
+    .pushBytes(util.intToBytes(util.crc32(body)));
   
   return Buffer(chunk);
 }
 Writer.prototype.tEXt = function(keyword, data) {
-  var combined = ByteArray(keyword);
-  combined.push(0);
-  combined.pushBytes(data);
-  return this.chunk('tEXt', combined);
+  return this.chunk('tEXt', [keyword, data].join('\u0000'));
 }
 
 exports.Reader = Reader;
