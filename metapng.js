@@ -1,5 +1,6 @@
 var fs = require('fs'),
-    util = require('./lib/util.js');
+    util = require('./lib/util.js'),
+    ByteArray = util.ByteArray;
 
 var ByteArray = function(bytes){
   if (!(this instanceof ByteArray)) return new ByteArray(bytes);
@@ -25,21 +26,22 @@ const PNG_MAGIC_NUMBER = ByteArray([137, 80, 78, 71, 13, 10, 26, 10]);
 var Reader = function(source) {
   if (!(this instanceof Reader)) return new Reader(source);
   this.source = source;
-  this.data = this.getContents(source);
+  this.data = null;
   this.cursor = 0;
   this.chunks = null;
 }
-Reader.prototype.getContents = function(source) {
+Reader.prototype.getContents = function() {
+  var source = this.source;
   if (Buffer.isBuffer(source))
-    return source;
-  if ('number' === typeof source) {
+    return this.data = source;
+  else if ('number' === typeof source) {
     var len = fs.fstatSync(source).size;
     var buf = Buffer(len);
     fs.readSync(source, buf, 0, len);
-    return buf;
+    return this.data = buf;
   }
-  if ('string' === typeof source) {
-    return fs.readFileSync(source);
+  else if ('string' === typeof source) {
+    return this.data = fs.readFileSync(source);
   }
   throw "unrecognized source. must be filename, file descriptor or buffer";
 }
@@ -54,6 +56,7 @@ Reader.prototype.eat = function(len) {
   return buf;
 }
 Reader.prototype.peek = function(len) {
+  if (!this.data) this.getContents();
   return this.data.slice(this.cursor, (this.cursor + len));
 }
 Reader.prototype.readChunks = function() {
@@ -62,7 +65,8 @@ Reader.prototype.readChunks = function() {
   this.rewind();
   magic_nom_nom = this.eat(8)
   if (!PNG_MAGIC_NUMBER.is(magic_nom_nom)) throw "this is not a PNG";
-  while (chunk = this.readNextChunk()) this.chunks.push(chunk);
+  while (chunk = this.readNextChunk()) this.chunks.push(chunk)
+  return this.chunks;
 }
 Reader.prototype.readNextChunk = function() {
   if (this.cursor === this.data.length) return null;
@@ -78,50 +82,54 @@ Reader.prototype.readNextChunk = function() {
 Reader.prototype.findByType = function(type) {
   if (!this.chunks) this.readChunks()
   return this.chunks.filter(function(chunk){
-    return (chunk.type === type)
+    return (chunk.type === type);
   });
+}
+
+
+function Writer(source) {
+  if (!(this instanceof Writer)) return new Writer(source);
+  Reader.call(this, source)
+}
+Writer.prototype = new Reader;
+Writer.prototype.chunk = function(type, data) {
+  var body = ByteArray(),
+      chunk = ByteArray();
+
+  body.pushBytes(type);
+  body.pushBytes(data);
+    
+  chunk.pushBytes(util.intToBytes(data.length));
+  chunk.pushBytes(body);
+  chunk.pushBytes(util.intToBytes(util.crc32(body)));
+  
+  return Buffer(chunk);
+}
+Writer.prototype.tEXt = function(keyword, data) {
+  var combined = ByteArray(keyword);
+  combined.push(0);
+  combined.pushBytes(data);
+  return this.chunk('tEXt', combined);
 }
 
 exports.Reader = Reader;
 exports.read = function(src, key){
-  var tEXtchunks = Reader(src).findByType('tEXt');
-  console.dir(tEXtchunks);
+  var textChunks = Reader(src).findByType('tEXt');
+  return textChunks;
 };
-
-/*
-var IHDR_ENDPOS = null;
-var tEXt_POS = [];
-
-var eat = function(){
-  var cursor = CURSOR,
-      len, type, data, crc;
-  // order is important here.
-  len = ByteArray(DATA.slice(cursor, (cursor += 4)));
-  type = DATA.slice(cursor, (cursor += 4)).toString();
-  data = DATA.slice(cursor, (cursor += len.to32Int()));
-  crc = ByteArray(DATA.slice(cursor, (cursor += 4)));
+exports.write = function(src, key, data) {
+  var writer = Writer(src);
+  var ihdr_end = writer.findByType('IHDR').pop().end;
+  var chunk = writer.tEXt(key, data);
+  var len = writer.data.length + chunk.length;
   
-  console.log('\n--BEGIN CHUNK');
-  console.dir(len);
-  console.dir(type);
-  console.dir(data);
-  console.dir(crc);
-  
-  // keep the location of just after the IHDR for second pass.  
-  switch (type) {
-    case 'IHDR': IHDR_ENDPOS = cursor; break;
-    case 'tEXt': tEXt_POS.push(cursor); break;
-  }
-  
-  // change global cursor.
-  CURSOR = cursor;
+  var buf = Buffer(len);
+  writer.data.copy(buf, 0, 0, ihdr_end);
+  chunk.copy(buf, ihdr_end)
+  writer.data.copy(buf, (ihdr_end + chunk.length), ihdr_end)
+  return buf;
 }
-while (CURSOR < DATA.length) { eat(); }
-
-
-// bail if existing tEXt, could be a badge
-if (tEXt_POS.length > 0) { throw "don't know how to deal with existing tEXt yet"; }
-
+/*
 var badge_tEXt = function(bData) {
   var type = Buffer('tEXt'),
       keyword = 'author',
@@ -145,16 +153,6 @@ var badge_tEXt = function(bData) {
   chunk.pushBytes(intToBytes(checksum));
   
   return Buffer(chunk);
-}
-
-var intToBytes = function(integer){
-  var hex = hex32(integer);
-  return ByteArray([
-    parseInt(hex.slice(0,2), 16),
-    parseInt(hex.slice(2,4), 16),
-    parseInt(hex.slice(4,6), 16),
-    parseInt(hex.slice(6,8), 16)
-  ])
 }
 
 var badgeData = badge_tEXt({

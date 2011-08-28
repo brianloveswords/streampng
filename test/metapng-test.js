@@ -4,26 +4,10 @@ var vows = require('vows'),
     metapng = require('../metapng.js'),
     path = require('path');
 
-// sync read -- explicit
-// var tEXt = [];
-// tEXt = metapng.readSync(filename, [keyword])
-// tEXt = metapng.readSync(fd, [keyword])
-// tEXt = metapng.readSync(buffer, [keyword])
-
-// sync read -- implicit
-// tEXt = metapng.read(filename, [keyword])
-// tEXt = metapng.read(fd, [keyword])
-// tEXt = metapng.read(buffer, [keyword])
-
-// async read
-// metapng.read(filename, [keyword], this.callback)
-// metapng.read(fd, [keyword], this.callback)
-// metapng.read(buffer, [keyword], this.callback)
-
-var testfile = path.join(__dirname, 'test.png');
+var testfile = path.join(__dirname, './pngs/test.png');
 vows.describe('metapng').addBatch({
-  'Should be able to read synchronously explicitly': { 
-    topic: function(){ return metapng.readSync },
+  'Should be able to read': { 
+    topic: function(){ return metapng.read },
     'by filename': function(reader){
       var filename = testfile;
       assert.isArray(reader(filename));
@@ -35,6 +19,15 @@ vows.describe('metapng').addBatch({
     'by buffer': function(reader){
       var buffer = fs.readFileSync(testfile);
       assert.isArray(reader(buffer));
+    },
+  },
+  'Should be able to write': { 
+    topic: function(){
+      return metapng.write(testfile, 'omg', 'ponies');
+    },
+    'and get a new buffer back': function(buffer){
+      assert.ok(Buffer.isBuffer(buffer));
+      assert.equal(metapng.read(buffer).length, 1);
     },
   }
 }).export(module);
