@@ -1,47 +1,11 @@
-var fs = require('fs');
-var crc = require('crc');
+var fs = require('fs'),
+    util = require('./lib/util.js');
+
 var FILENAME = process.ARGV[2];
 var OUTPUT = process.ARGV[3];
 
 if (!FILENAME) throw "need a file here";
  
-// straight from the spec page: http://www.w3.org/TR/PNG/#5CRC-algorithm
-/* Table of CRCs of all 8-bit messages. */
-var crc_table = {}
-/* Flag: has the table been computed? Initially false. */
-var crc_table_computed = 0;
-/* Make the table for a fast CRC. */
-function make_crc_table() {
-  var c, n, k;
-  for (n = 0; n < 256; n++) {
-    c = n;
-    for (k = 0; k < 8; k++) {
-      if (c & 1) c = 0xedb88320 ^ (c >> 1);
-      else c = c >> 1;
-    }
-    crc_table[n] = c;
-  }
-  crc_table_computed = 1;
-}
-
-/* Update a running CRC with the bytes buf[0..len-1]--the CRC
-   should be initialized to all 1's, and the transmitted value
-   is the 1's complement of the final running CRC (see the
-   crc() routine below). */
-function update_crc(crc, buf) {
-  var c = crc, n;
-  if (!crc_table_computed)
-    make_crc_table();
-  for (n = 0; n < buf.len; n++) {
-    c = crc_table[(c ^ buf[n]) & 0xff] ^ (c >> 8);
-  }
-  return c;
-}
-
-/* Return the CRC of the bytes buf[0..len-1]. */
-function refcrc(buf) {
-  return update_crc(0xffffffff, buf, buf.len) ^ 0xffffffff;
-}
 
 var ByteArray = function(bytes){
   // make sure we're creating a new object
@@ -130,7 +94,7 @@ var badge_tEXt = function(bData) {
   data.push(0);
   data.pushBytes(pBadge);
   // CRC does include type...
-  checksum = crc.hex32(refcrc(data));
+  checksum = hex32(refcrc(data));
     
   // ... but length doesn't
   chunk.pushBytes(intToBytes(data.length-4));
@@ -141,7 +105,7 @@ var badge_tEXt = function(bData) {
 }
 
 var intToBytes = function(integer){
-  var hex = crc.hex32(integer);
+  var hex = hex32(integer);
   return ByteArray([
     parseInt(hex.slice(0,2), 16),
     parseInt(hex.slice(2,4), 16),
