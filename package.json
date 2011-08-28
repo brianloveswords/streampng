@@ -1,0 +1,8 @@
+{ "name": "metapng.js"
+, "description": "Mess around with PNG metadata"
+, "version": "0.0.1"
+, "private": false
+, "devDependencies":
+  { "vows": "0.5.x" }
+, "engine": "node 0.4.x"
+}
