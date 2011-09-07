@@ -1,6 +1,7 @@
 { "name": "metapng.js"
 , "description": "Mess around with PNG metadata"
 , "version": "0.0.1"
+, "main": "./index.js"
 , "private": false
 , "devDependencies":
   { "vows": "0.5.x" }
