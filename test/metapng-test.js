@@ -30,6 +30,21 @@ vows.describe('metapng').addBatch({
     },
     'and get back written keyword': function(buf){
       assert.equal(metapng.read(buf, 'omg').pop(), 'ponies');
-    }
+    },
+    'and not get non-existant keyword': function(buf){
+      assert.equal(metapng.read(buf, 'nevaaar').length, 0);
+    },
+    'and throw error on unique-write of same keyword': function(buf){
+      assert.throws(function(){
+        metapng.writeOne(buf, 'omg', 'ponies');
+      }, Error);
+    },
+    'and do unique-write of different keyword': function(buf){
+      var newbuf;
+      assert.doesNotThrow(function(){
+        newbuf = metapng.writeOne(buf, 'omgzlls', 'horses');
+      }, Error);
+      assert.equal(metapng.read(newbuf, 'omgzlls').pop(), 'horses');
+    },
   }
 }).export(module);

@@ -169,3 +169,13 @@ exports.write = function(src, key, data) {
   writer.data.copy(buf, (ihdr_end + chunk.length), ihdr_end)
   return buf;
 };
+exports.writeOne = function(src, key, data) {
+  var writer = Writer(src)
+    , keybuf = ByteArray(key + "\u0000")
+    , keylen = keybuf.length
+    , keyexists = writer.findByType('tEXt').some(function(textdata){
+      return keybuf.is(textdata['data'].slice(0, keylen));
+    })
+  if (keyexists) { throw new Error('key already exists.'); }
+  return exports.write(src, key, data);
+}
