@@ -1,7 +1,7 @@
 var vows = require('vows'),
     assert = require('assert'),
     fs = require('fs'),
-    metapng = require('../metapng.js'),
+    metapng = require('../index.js'),
     path = require('path');
 
 var testfile = path.join(__dirname, './pngs/test.png');
@@ -25,9 +25,11 @@ vows.describe('metapng').addBatch({
     topic: function(){
       return metapng.write(testfile, 'omg', 'ponies');
     },
-    'and get a new buffer back': function(buffer){
-      assert.ok(Buffer.isBuffer(buffer));
-      assert.equal(metapng.read(buffer).length, 1);
+    'and get a new buffer back': function(buf){
+      assert.ok(Buffer.isBuffer(buf));
     },
+    'and get back written keyword': function(buf){
+      assert.equal(metapng.read(buf, 'omg').pop(), 'ponies');
+    }
   }
 }).export(module);

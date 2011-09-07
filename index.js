@@ -138,12 +138,25 @@ Writer.prototype.tEXt = function(keyword, data) {
   return this.chunk('tEXt', [keyword, data].join("\u0000"));
 }
 
+var getNullBytePos = function(buf) {
+  var len = buf.length, i = 0;
+  for (; i < len; i++) { if (buf[i] === 0) return i; }
+  return -1;
+}
+
 // Expose objects as well as shortcut methods for reading and writing tEXt chunks.
 exports.Reader = Reader;
 exports.Writer = Writer;
 exports.read = function(src, key){
-  var textChunks = Reader(src).findByType('tEXt');
-  return textChunks;
+  var textChunks = Reader(src).findByType('tEXt')
+    , keybuf = ByteArray(key + "\u0000")
+    , keylen = keybuf.length
+  return textChunks.filter(function(textdata){
+    var databuf = textdata['data'];
+    return keybuf.is(databuf.slice(0, keylen));
+  }).map(function(textdata){
+    return textdata['data'].slice(keylen);
+  })
 };
 exports.write = function(src, key, data) {
   var writer = Writer(src)
@@ -155,4 +168,4 @@ exports.write = function(src, key, data) {
   chunk.copy(buf, ihdr_end)
   writer.data.copy(buf, (ihdr_end + chunk.length), ihdr_end)
   return buf;
-}
+};
