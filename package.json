@@ -1,4 +1,4 @@
-{ "name": "metapng.js"
+{ "name": "metapng"
 , "description": "Mess around with PNG metadata"
 , "version": "0.0.1"
 , "main": "./index.js"
