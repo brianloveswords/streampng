@@ -5,9 +5,9 @@ var data = Buffer('where did you get your _____?');
 describe('Parser#eat', function () {
   it('returns the right values after eating', function () {
     var p = new Parser(data);
-    assert.equal(p.eats(1), 'w');
-    assert.equal(p.eats(2), 'he');
-    assert.equal(p.eats(4), 're d');
+    assert.equal(p.eat(1), 'w');
+    assert.equal(p.eat(2), 'he');
+    assert.equal(p.eat(4), 're d');
   });
 
   it('updates the length after eating', function () {
@@ -18,7 +18,7 @@ describe('Parser#eat', function () {
 
   it('returns sane values when out of bounds', function () {
     var p = new Parser(data);
-    assert.equal(p.eats(Buffer.poolSize), data.toString());
+    assert.equal(p.eat(Buffer.poolSize), data.toString());
     assert.equal(p.eat(Buffer.poolSize), null);
   });
 });
@@ -64,7 +64,7 @@ describe('Parser#eatString', function () {
   it('includes null byte in offset but not string', function () {
     var p = new Parser(data);
     assert.equal(p.eatString(), 'what');
-    assert.equal(p.eats(3), 'the');
+    assert.equal(p.eat(3), 'the');
   });
 });
 
@@ -73,9 +73,21 @@ describe('Parser#eatRemaining', function () {
   var data = Buffer(string);
   it('finish eating the buffer', function () {
     var p = new Parser(data);
-    assert.equal(p.eatRemaining().toString(), string);
+    assert.equal(p.eatRemaining(), string);
     assert.equal(p.eatRemaining(), null);
     p.rewind(5);
     assert.equal(p.eatRemaining(), 'that?');
+  });
+});
+
+describe('Parser#write', function () {
+  var string = 'lol';
+  var data = Buffer(string);
+  var moar = Buffer('lercoaster');
+  it('appends another buffer to the internal buffer', function () {
+    var p = new Parser();
+    assert.equal(p.getBuffer(), '');
+    assert.equal(p.write(data), 'lol');
+    assert.equal(p.write(moar), 'lollercoaster');
   });
 });
