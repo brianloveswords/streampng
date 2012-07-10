@@ -1,3 +1,6 @@
-Mess around with PNGs, jam some data in there.
+Mess around with PNGs, get some chunks, jam some data in there.
 
-Yes, this would be easier with node 0.5.5 typed arrays. Unfortunately I'm bound to using node 0.4x stable.
+# Currently in full rewrite mode:
+## Future
+* Explore dSIG: ftp://ftp.simplesystems.org/pub/png/documents/signatures/index.html
+
