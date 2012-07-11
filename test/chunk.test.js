@@ -115,3 +115,16 @@ test('tRNS', function (t) {
   });
   t.end();
 });
+
+test('iCCP', function (t) {
+  var valid = pngs.valid.iCCP[0];
+  var chunk = new Chunk.iCCP(valid.buffer);
+  t.same(chunk.profileName, valid.profileName, 'names should match');
+  t.same(chunk.compressionMethod, valid.compressionMethod, 'compression methods should match');
+  t.same(chunk.compressedProfile, valid.compressedProfile, 'compressed profile should match');
+  chunk.inflateProfile(function (err, data) {
+    t.ok(data, 'should be able to inflate profile');
+    t.end();
+  });
+});
+
