@@ -47,12 +47,12 @@ var valid = {
   bKGD: [{
     file: f('bgbn4a08'),
     colourType: 4,
-    grey: 0,
+    greyscale: 0,
     buffer: Buffer([0x00, 0x00])
   }, {
     file: f('bggn4a16'),
     colourType: 4,
-    grey: 44004,
+    greyscale: 44004,
     buffer: Buffer([0xAB, 0xE4])
   }, {
     file: f('bgwn6a08'),

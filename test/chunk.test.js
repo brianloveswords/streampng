@@ -105,9 +105,9 @@ test('tRNS', function (t) {
   var chunks = pngs.valid.tRNS;
   chunks.forEach(function (valid) {
     var chunk = new Chunk.tRNS(valid.buffer, valid);
-    if (valid.grey)
+    if ('grey' in valid)
       t.same(chunk.grey, valid.grey, 'grey sample value should match');
-    else if (valid.red) {
+    else if ('red' in valid) {
       t.same(chunk.red, valid.red, 'red sample value should match');
       t.same(chunk.green, valid.green, 'green sample value should match');
       t.same(chunk.blue, valid.blue, 'blue sample value should match');
@@ -130,3 +130,19 @@ test('iCCP', function (t) {
   });
 });
 
+test('bKGD', function (t) {
+  var chunks = pngs.valid.bKGD;
+  chunks.forEach(function (valid) {
+    var chunk = new Chunk.bKGD(valid.buffer, valid);
+    if ('greyscale' in valid)
+      return t.same(chunk.greyscale, valid.greyscale, m('greyscale'));
+    if ('red' in valid) {
+      t.same(chunk.red, valid.red, m('red'));
+      t.same(chunk.green, valid.green, m('green'));
+      t.same(chunk.blue, valid.blue, m('blue'));
+      return;
+    }
+    t.same(chunk.paletteIndex, valid.paletteIndex, m('paletteIndex'));
+  });
+  t.end();
+});
