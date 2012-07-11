@@ -146,3 +146,13 @@ test('bKGD', function (t) {
   });
   t.end();
 });
+
+test('pHYs', function (t) {
+  var chunks = pngs.valid.pHYs;
+  chunks.forEach(function (valid) {
+    var chunk = new Chunk.pHYs(valid.buffer);
+    t.same(chunk.unitSpecifier, valid.unitSpecifier, m('unit specifier'));
+    t.ok(chunk.pixelsPerUnit.equals(valid.pixelsPerUnit), m('pixels per unit'));
+  });
+  t.end();
+});
