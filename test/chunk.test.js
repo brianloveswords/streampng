@@ -98,3 +98,20 @@ test('gAMA', function (t) {
     t.same(chunk.gamma, valid.gamma);
   });
 });
+
+test('tRNS', function (t) {
+  var chunks = pngs.valid.tRNS;
+  chunks.forEach(function (valid) {
+    var chunk = new Chunk.tRNS(valid.buffer, valid);
+    if (valid.grey)
+      t.same(chunk.grey, valid.grey);
+    else if (valid.red) {
+      t.same(chunk.red, valid.red);
+      t.same(chunk.green, valid.green);
+      t.same(chunk.blue, valid.blue);
+    }
+    else
+      t.same(chunk.palette, valid.palette)
+  });
+  t.end();
+});

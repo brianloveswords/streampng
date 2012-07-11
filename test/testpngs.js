@@ -68,19 +68,19 @@ var valid = {
   tRNS: [{
     file: f('tbbn0g04'),
     colourType: 0,
-    grey: 15,
+    grey: 0x000f,
     buffer: Buffer([0x00, 0x0F])
   }, {
     file: f('tbbn2c16'),
     colourType: 2,
-    red: 255,
-    green: 255,
-    blue: 255,
+    red: 0xffff,
+    green: 0xffff,
+    blue: 0xffff,
     buffer: Buffer([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
   }, {
     file: f('tbbn3p08'),
     colourType: 3,
-    alpha: 0,
+    palette: [0],
     buffer: Buffer([0x00])
   }],
   gAMA: [{
