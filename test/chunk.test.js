@@ -239,7 +239,8 @@ test('sPLT', function (t) {
   var chunks = pngs.valid.sPLT;
   chunks.forEach(function (valid) {
     var m = msgr(valid);
-    var chunk = new Chunk.sPLT(valid.buffer, valid);
+    var chunk = new Chunk(valid.buffer);
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
     t.same(chunk.paletteName, valid.paletteName, m('palette name'));
     t.same(chunk.sampleDepth, valid.sampleDepth, m('sample depth'));
     t.same(chunk.palette.length, valid.entries, m('number of entries'));
