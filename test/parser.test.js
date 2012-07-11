@@ -29,18 +29,15 @@ test('Parser#eat', function (t) {
 
   t.test('can cast values to ints', function (t) {
     var p = new Parser(B([0x80]));
-    t.same(p.eat(1, { castToUInt: true }), 0x80);
+    t.same(p.eat(1, { integer: true }), 0x80);
 
-    var p = new Parser(B([0x10, 0x80]));
-    t.same(p.eat(2, { castToUInt: true }), 0x1080);
+    p = new Parser(B([0x10, 0x80]));
+    t.same(p.eat(2, { integer: true }), 0x1080);
 
-    var p = new Parser(B([0x30, 0x20, 0x10, 0x80]));
-    t.same(p.eat(4, { castToUInt: true }), 0x30201080);
-
+    p = new Parser(B([0x30, 0x20, 0x10, 0x80]));
+    t.same(p.eat(4, { integer: true }), 0x30201080);
     t.end();
   });
-
-
   t.end();
 });
 

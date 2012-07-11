@@ -194,3 +194,23 @@ test('sBIT', function (t) {
   });
   t.end();
 });
+
+test('hIST', function (t) {
+  var chunks = pngs.valid.hIST;
+  chunks.forEach(function (valid) {
+    var chunk = new Chunk.hIST(valid.buffer, valid);
+    t.same(chunk.frequencies, valid.frequencies, m('frequencies'));
+  });
+  t.end();
+});
+
+test('sPLT', function (t) {
+  var chunks = pngs.valid.sPLT;
+  chunks.forEach(function (valid) {
+    var chunk = new Chunk.sPLT(valid.buffer, valid);
+    t.same(chunk.paletteName, valid.paletteName, m('palette name'));
+    t.same(chunk.sampleDepth, valid.sampleDepth, m('sample depth'));
+    t.same(chunk.palette.length, valid.entries, m('number of entries'));
+  });
+  t.end();
+});
