@@ -156,3 +156,41 @@ test('pHYs', function (t) {
   });
   t.end();
 });
+
+test('sRGB', function (t) {
+  var chunks = pngs.valid.sRGB;
+  chunks.forEach(function (valid) {
+    var chunk = new Chunk.sRGB(valid.buffer);
+    t.same(chunk.renderingIntent, valid.renderingIntent, m('rendering intent'));
+  });
+  t.end();
+});
+
+test('sBIT', function (t) {
+  var chunks = pngs.valid.sBIT;
+  chunks.forEach(function (valid) {
+    var chunk = new Chunk.sBIT(valid.buffer, valid);
+    var colour = valid.colourType;
+    if (colour === 0)
+      t.same(chunk.greyscale, valid.greyscale, m('greyscale bits'));
+
+    else if (colour === 2 || colour === 3) {
+      t.same(chunk.red, valid.red, m('red bits'));
+      t.same(chunk.green, valid.green, m('green bits'));
+      t.same(chunk.blue, valid.blue, m('blue bits'));
+    }
+
+    else if (colour === 4) {
+      t.same(chunk.greyscale, valid.greyscale, m('greyscale bits'));
+      t.same(chunk.alpha, valid.alpha, m('alpha bits'));
+    }
+
+    else if (colour === 6) {
+      t.same(chunk.red, valid.red, m('red bits'));
+      t.same(chunk.green, valid.green, m('green bits'));
+      t.same(chunk.blue, valid.blue, m('blue bits'));
+      t.same(chunk.alpha, valid.alpha, m('alpha bits'));
+    }
+  });
+  t.end();
+});
