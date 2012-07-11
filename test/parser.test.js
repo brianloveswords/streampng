@@ -92,6 +92,16 @@ test('Parser#eatRemaining', function (t) {
     t.end();
   });
 
+  t.test('digest in chunks', function (t) {
+    var p = new Parser(data);
+    var chunks = p.eatRest({ chunkSize: 2 });
+    var num = Math.ceil(data.length / 2);
+    t.same(chunks.length, num, 'should have right amount of chunks');
+    t.same(chunks[0], B('ho'), 'first chunk should match');
+    t.end();
+  });
+
+
   t.end();
 });
 
