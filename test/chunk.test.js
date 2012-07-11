@@ -6,6 +6,10 @@ var pngs = require('./testpngs.js');
 
 var testChunk = B.concat([B([0, 0, 0, 0]), B('IEND'), crc32('IEND')]);
 
+function msgr(c) {
+  return function m(str) { return c.file + ': ' + str + ' should match' }
+}
+
 function m(str) { return str + ' should match'; }
 
 test('basic chunk parsing', function (t) {
@@ -32,10 +36,11 @@ test('bad chunk', function (t) {
 test('tEXt', function (t) {
   var chunks = pngs.valid.tEXt;
   chunks.forEach(function (valid) {
+    var m = msgr(valid);
     var chunk = new Chunk(valid.buffer, valid);
     t.same(chunk.keyword, valid.keyword, m('keyword'));
     t.same(chunk.text, valid.text, m('text'));
-    t.ok(chunk.checkCRC(), 'crc checks out');
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc checks out'));
   });
   t.end();
 });
@@ -44,12 +49,12 @@ test('zTXt', function (t) {
   var chunks = pngs.valid.zTXt;
   t.plan(5 * chunks.length);
   chunks.forEach(function (valid) {
+    var m = msgr(valid);
     var chunk = new Chunk(valid.buffer, valid);
     t.same(chunk.keyword, valid.keyword, m('keyword'));
     t.same(chunk.compressionMethod, valid.compressionMethod, m('compression method'));
     t.same(chunk.compressedText, valid.compressedText, m('compressed text'));
-    chunk.checkCRC();
-    t.ok(chunk.checkCRC(), 'crc checks out');
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
     chunk.inflateText(function (err, text) {
       t.same(text, valid.text);
     });
@@ -60,6 +65,7 @@ test('iTXt', function (t) {
   var chunks = pngs.valid.iTXt;
   t.plan(3 * chunks.length);
   chunks.forEach(function (valid) {
+    var m = msgr(valid);
     var chunk = new Chunk.iTXt(valid.buffer);
     t.same(chunk.keyword, valid.keyword, m('keyword'));
     t.same(chunk.compressed, valid.compressed, m('compressed boolean'));
@@ -73,13 +79,14 @@ test('PLTE', function (t) {
   var chunks = pngs.valid.PLTE;
   t.plan(1 * chunks.length);
   chunks.forEach(function (valid) {
+    var m = msgr(valid);
     var chunk = new Chunk(valid.buffer, valid);
     valid.colours.forEach(function (colour, i) {
       var cc = chunk.colours[i];
       if (!colour.equals(cc))
         t.fail(m('colours'));
     })
-    t.ok(chunk.checkCRC(), 'crc checks out');
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
   });
 });
 
@@ -87,6 +94,7 @@ test('cHRM', function (t) {
   var chunks = pngs.valid.cHRM;
   t.plan(4 * chunks.length);
   chunks.forEach(function (valid) {
+    var m = msgr(valid);
     var chunk = new Chunk.cHRM(valid.buffer);
     t.ok(chunk.whitePoint.equals(valid.whitePoint), m('whitePoint'));
     t.ok(chunk.red.equals(valid.red), m('red point'));
@@ -99,31 +107,39 @@ test('gAMA', function (t) {
   var chunks = pngs.valid.gAMA;
   t.plan(1 * chunks.length);
   chunks.forEach(function (valid) {
+    var m = msgr(valid);
     var chunk = new Chunk.gAMA(valid.buffer);
-    t.same(chunk.gamma, valid.gamma, 'gamma should match');
+    t.same(chunk.gamma, valid.gamma, m('gamma'));
   });
 });
 
 test('tRNS', function (t) {
   var chunks = pngs.valid.tRNS;
   chunks.forEach(function (valid) {
-    var chunk = new Chunk.tRNS(valid.buffer, valid);
-    if ('grey' in valid)
-      t.same(chunk.grey, valid.grey, 'grey sample value should match');
-    else if ('red' in valid) {
-      t.same(chunk.red, valid.red, 'red sample value should match');
-      t.same(chunk.green, valid.green, 'green sample value should match');
-      t.same(chunk.blue, valid.blue, 'blue sample value should match');
+    var m = msgr(valid);
+    var chunk = new Chunk(valid.buffer, valid);
+    var colour = valid.colourType;
+
+    if (colour === 0)
+      t.same(chunk.grey, valid.grey, m('grey sample value'));
+
+    else if (colour === 2) {
+      t.same(chunk.red, valid.red, m('red sample value'));
+      t.same(chunk.green, valid.green, m('green sample value'));
+      t.same(chunk.blue, valid.blue, m('blue sample value'));
     }
+
     else
       t.same(chunk.palette, valid.palette)
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
   });
   t.end();
 });
 
 test('iCCP', function (t) {
   var valid = pngs.valid.iCCP[0];
-  var chunk = new Chunk.iCCP(valid.buffer);
+  var chunk = new Chunk(valid.buffer, valid);
+  var m = msgr(valid);
   t.same(chunk.profileName, valid.profileName, m('profileName'));
   t.same(chunk.compressionMethod, valid.compressionMethod, m('compression method'));
   t.same(chunk.compressedProfile, valid.compressedProfile, m('compressed profile'));
@@ -136,16 +152,22 @@ test('iCCP', function (t) {
 test('bKGD', function (t) {
   var chunks = pngs.valid.bKGD;
   chunks.forEach(function (valid) {
-    var chunk = new Chunk.bKGD(valid.buffer, valid);
-    if ('greyscale' in valid)
-      return t.same(chunk.greyscale, valid.greyscale, m('greyscale'));
-    if ('red' in valid) {
+    var m = msgr(valid);
+    var chunk = new Chunk(valid.buffer, valid);
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc checks out'));
+
+    var colour = valid.colourType;
+    if (colour === 0 || colour === 4)
+      t.same(chunk.greyscale, valid.greyscale, m('greyscale'));
+
+    else if (colour === 2 || colour === 6) {
       t.same(chunk.red, valid.red, m('red'));
       t.same(chunk.green, valid.green, m('green'));
       t.same(chunk.blue, valid.blue, m('blue'));
-      return;
     }
-    t.same(chunk.paletteIndex, valid.paletteIndex, m('paletteIndex'));
+
+    else // if (colour === 3)
+      t.same(chunk.paletteIndex, valid.paletteIndex, m('paletteIndex'));
   });
   t.end();
 });
@@ -153,6 +175,7 @@ test('bKGD', function (t) {
 test('pHYs', function (t) {
   var chunks = pngs.valid.pHYs;
   chunks.forEach(function (valid) {
+    var m = msgr(valid);
     var chunk = new Chunk.pHYs(valid.buffer);
     t.same(chunk.unitSpecifier, valid.unitSpecifier, m('unit specifier'));
     t.ok(chunk.pixelsPerUnit.equals(valid.pixelsPerUnit), m('pixels per unit'));
@@ -163,7 +186,9 @@ test('pHYs', function (t) {
 test('sRGB', function (t) {
   var chunks = pngs.valid.sRGB;
   chunks.forEach(function (valid) {
-    var chunk = new Chunk.sRGB(valid.buffer);
+    var m = msgr(valid);
+    var chunk = new Chunk(valid.buffer, valid);
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
     t.same(chunk.renderingIntent, valid.renderingIntent, m('rendering intent'));
   });
   t.end();
@@ -172,6 +197,7 @@ test('sRGB', function (t) {
 test('sBIT', function (t) {
   var chunks = pngs.valid.sBIT;
   chunks.forEach(function (valid) {
+    var m = msgr(valid);
     var chunk = new Chunk.sBIT(valid.buffer, valid);
     var colour = valid.colourType;
     if (colour === 0)
@@ -201,6 +227,7 @@ test('sBIT', function (t) {
 test('hIST', function (t) {
   var chunks = pngs.valid.hIST;
   chunks.forEach(function (valid) {
+    var m = msgr(valid);
     var chunk = new Chunk.hIST(valid.buffer, valid);
     t.same(chunk.frequencies, valid.frequencies, m('frequencies'));
   });
@@ -210,6 +237,7 @@ test('hIST', function (t) {
 test('sPLT', function (t) {
   var chunks = pngs.valid.sPLT;
   chunks.forEach(function (valid) {
+    var m = msgr(valid);
     var chunk = new Chunk.sPLT(valid.buffer, valid);
     t.same(chunk.paletteName, valid.paletteName, m('palette name'));
     t.same(chunk.sampleDepth, valid.sampleDepth, m('sample depth'));
@@ -221,6 +249,7 @@ test('sPLT', function (t) {
 test('tIME', function (t) {
   var chunks = pngs.valid.tIME;
   chunks.forEach(function (valid) {
+    var m = msgr(valid);
     var chunk = new Chunk.tIME(valid.buffer, valid);
     var date = new Date(valid.year, valid.month, valid.day, valid.hour, valid.minute, valid.second);
     t.same(chunk.year, valid.year, m('year'));
