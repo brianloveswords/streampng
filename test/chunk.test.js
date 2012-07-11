@@ -214,3 +214,20 @@ test('sPLT', function (t) {
   });
   t.end();
 });
+
+test('tIME', function (t) {
+  var chunks = pngs.valid.tIME;
+  chunks.forEach(function (valid) {
+    var chunk = new Chunk.tIME(valid.buffer, valid);
+    var date = new Date(valid.year, valid.month, valid.day, valid.hour, valid.minute, valid.second);
+    t.same(chunk.year, valid.year, m('year'));
+    t.same(chunk.month, valid.month, m('month'));
+    t.same(chunk.day, valid.day, m('day'));
+    t.same(chunk.hour, valid.hour, m('hour'));
+    t.same(chunk.minute, valid.minute, m('minute'));
+    t.same(chunk.second, valid.second, m('second'));
+    t.same(chunk.date, date, m('date'));
+  });
+  t.end();
+});
+
