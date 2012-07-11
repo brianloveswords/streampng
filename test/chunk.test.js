@@ -30,23 +30,23 @@ test('bad chunk', function (t) {
 test('tEXt', function (t) {
   var chunks = pngs.valid.tEXt;
   t.plan(2 * chunks.length);
-  chunks.forEach(function (testChunk) {
-    var chunk = new Chunk.tEXt(testChunk.buffer);
-    t.same(testChunk.keyword, chunk.keyword);
-    t.same(testChunk.text, chunk.text);
+  chunks.forEach(function (valid) {
+    var chunk = new Chunk.tEXt(valid.buffer);
+    t.same(chunk.keyword, valid.keyword);
+    t.same(chunk.text, valid.text);
   });
 });
 
 test('zTXt', function (t) {
   var chunks = pngs.valid.zTXt;
   t.plan(4 * chunks.length);
-  chunks.forEach(function (testChunk) {
-    var chunk = new Chunk.zTXt(testChunk.buffer);
-    t.same(testChunk.keyword, chunk.keyword);
-    t.same(testChunk.compressionMethod, chunk.compressionMethod);
-    t.same(testChunk.compressedText, chunk.compressedText);
+  chunks.forEach(function (valid) {
+    var chunk = new Chunk.zTXt(valid.buffer);
+    t.same(chunk.keyword, valid.keyword);
+    t.same(chunk.compressionMethod, valid.compressionMethod);
+    t.same(chunk.compressedText, valid.compressedText);
     chunk.inflateText(function (err, text) {
-      t.same(testChunk.text, text);
+      t.same(text, valid.text);
     });
   });
 });
@@ -54,12 +54,12 @@ test('zTXt', function (t) {
 test('iTXt', function (t) {
   var chunks = pngs.valid.iTXt;
   t.plan(3 * chunks.length);
-  chunks.forEach(function (testChunk) {
-    var chunk = new Chunk.iTXt(testChunk.buffer);
-    t.same(testChunk.keyword, chunk.keyword);
-    t.same(testChunk.compressed, chunk.compressed);
+  chunks.forEach(function (valid) {
+    var chunk = new Chunk.iTXt(valid.buffer);
+    t.same(chunk.keyword, valid.keyword);
+    t.same(chunk.compressed, valid.compressed);
     chunk.inflateText(function (err, text) {
-      t.same(testChunk.text, text);
+      t.same(chunk.text, text);
     });
   });
 });
@@ -67,9 +67,9 @@ test('iTXt', function (t) {
 test('PLTE', function (t) {
   var chunks = pngs.valid.PLTE;
   t.plan(1 * chunks.length);
-  chunks.forEach(function (testChunk) {
-    var chunk = new Chunk.PLTE(testChunk.buffer);
-    testChunk.colours.forEach(function (colour, i) {
+  chunks.forEach(function (valid) {
+    var chunk = new Chunk.PLTE(valid.buffer);
+    valid.colours.forEach(function (colour, i) {
       var cc = chunk.colours[i];
       if (!colour.equals(cc))
         t.fail();
@@ -81,11 +81,20 @@ test('PLTE', function (t) {
 test('cHRM', function (t) {
   var chunks = pngs.valid.cHRM;
   t.plan(4 * chunks.length);
-  chunks.forEach(function (testChunk) {
-    var chunk = new Chunk.cHRM(testChunk.buffer);
-    t.ok(chunk.whitePoint.equals(testChunk.whitePoint), 'should have same whitePoint');
-    t.ok(chunk.red.equals(testChunk.red), 'should have same red point');
-    t.ok(chunk.green.equals(testChunk.green), 'should have same green point');
-    t.ok(chunk.blue.equals(testChunk.blue), 'should have same blue point');
+  chunks.forEach(function (valid) {
+    var chunk = new Chunk.cHRM(valid.buffer);
+    t.ok(chunk.whitePoint.equals(valid.whitePoint), 'should have same whitePoint');
+    t.ok(chunk.red.equals(valid.red), 'should have same red point');
+    t.ok(chunk.green.equals(valid.green), 'should have same green point');
+    t.ok(chunk.blue.equals(valid.blue), 'should have same blue point');
+  });
+});
+
+test('gAMA', function (t) {
+  var chunks = pngs.valid.gAMA;
+  t.plan(1 * chunks.length);
+  chunks.forEach(function (valid) {
+    var chunk = new Chunk.gAMA(valid.buffer);
+    t.same(chunk.gamma, valid.gamma);
   });
 });

@@ -86,17 +86,17 @@ var valid = {
   gAMA: [{
     file: f('g03n0g16'),
     colourType: 0,
-    value: 0.35,
+    gamma: 0.35,
     buffer: Buffer([0x00, 0x00, 0x88, 0xB8])
   }, {
     file: f('g07n2c08'),
     colourType: 2,
-    value: 0.70,
+    gamma: 0.70,
     buffer: Buffer([0x00, 0x01, 0x11, 0x70])
   }, {
     file: f('g25n3p04'),
     colourType: 3,
-    value: 2.5,
+    gamma: 2.5,
     buffer: Buffer([0x00, 0x03, 0xD0, 0x90])
   }],
   sPLT: [{
