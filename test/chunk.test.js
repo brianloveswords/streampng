@@ -92,15 +92,16 @@ test('PLTE', function (t) {
 
 test('cHRM', function (t) {
   var chunks = pngs.valid.cHRM;
-  t.plan(4 * chunks.length);
   chunks.forEach(function (valid) {
     var m = msgr(valid);
-    var chunk = new Chunk.cHRM(valid.buffer);
+    var chunk = new Chunk(valid.buffer);
     t.ok(chunk.whitePoint.equals(valid.whitePoint), m('whitePoint'));
     t.ok(chunk.red.equals(valid.red), m('red point'));
     t.ok(chunk.green.equals(valid.green), m('green point'));
     t.ok(chunk.blue.equals(valid.blue), m('blue point'));
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
   });
+  t.end();
 });
 
 test('gAMA', function (t) {
