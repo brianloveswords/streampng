@@ -1,5 +1,5 @@
-var crc32 = require('../lib/util.js').crc32;
 var B = require('buffer').Buffer;
+var crc32 = require('buffer-crc32');
 var test = require('tap').test;
 var Chunk = require('../lib/chunk.js');
 var pngs = require('./testpngs.js');
@@ -31,22 +31,25 @@ test('bad chunk', function (t) {
 
 test('tEXt', function (t) {
   var chunks = pngs.valid.tEXt;
-  t.plan(2 * chunks.length);
   chunks.forEach(function (valid) {
-    var chunk = new Chunk.tEXt(valid.buffer);
+    var chunk = new Chunk(valid.buffer, valid);
     t.same(chunk.keyword, valid.keyword, m('keyword'));
     t.same(chunk.text, valid.text, m('text'));
+    t.ok(chunk.checkCRC(), 'crc checks out');
   });
+  t.end();
 });
 
 test('zTXt', function (t) {
   var chunks = pngs.valid.zTXt;
-  t.plan(4 * chunks.length);
+  t.plan(5 * chunks.length);
   chunks.forEach(function (valid) {
-    var chunk = new Chunk.zTXt(valid.buffer);
+    var chunk = new Chunk(valid.buffer, valid);
     t.same(chunk.keyword, valid.keyword, m('keyword'));
     t.same(chunk.compressionMethod, valid.compressionMethod, m('compression method'));
     t.same(chunk.compressedText, valid.compressedText, m('compressed text'));
+    chunk.checkCRC();
+    t.ok(chunk.checkCRC(), 'crc checks out');
     chunk.inflateText(function (err, text) {
       t.same(text, valid.text);
     });
@@ -231,3 +234,28 @@ test('tIME', function (t) {
   t.end();
 });
 
+test('creating chunks from thin air', function (t) {
+  t.test('tIME', function (t) {
+    // var chunk = new Chunk.tIME({
+    //   year: 2000,
+    //   month: 1,
+    //   day: 1,
+    //   hour: 12,
+    //   minute: 34,
+    //   second: 56
+    // });
+    var length = B([0x00, 0x00, 0x00, 0x08]);
+    var type = B('tIME');
+    var data = B([0x07, 0xd0, 0x01, 0x01, 0x0c, 0x22, 0x38]);
+    var crc = crc32(B.concat([type, data]))
+    var validBuffer = B.concat([length, type, data, crc]);
+
+    console.dir(validBuffer);
+
+    t.end();
+  });
+
+
+
+  t.end();
+});
