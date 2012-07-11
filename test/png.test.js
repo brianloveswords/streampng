@@ -1,6 +1,6 @@
 var fs = require('fs');
 var test = require('tap').test;
-var Png = require('../lib/png.js');
+var Png = require('..');
 
 var FILENAME = __dirname + '/pngs/tEXt-iTXt.png';
 var buffer = fs.readFileSync(FILENAME);

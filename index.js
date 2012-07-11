@@ -1,181 +1,182 @@
-var fs = require('fs')
-  , util = require('./lib/util.js')
+var Stream = require('stream').Stream;
+var util = require('util');
+var bufferEqual = require('buffer-equal');
+var Parser = require('./lib/parser.js');
+var Chunk = require('./lib/chunk.js');
 
-// ByteArray is a janky implementation of array that allows me to pretend I
-// have a typed array. It can turn four bytes into an unsigned 32 bit integer
-// (big-endian). Once a stable version of node comes out with typed arrays,
-// replace this with that.
-var ByteArray = function(bytes){
-  if (!(this instanceof ByteArray)) return new ByteArray(bytes);
-  if (bytes) { this.pushBytes(bytes); }
-}
-ByteArray.prototype = new Array;
-ByteArray.prototype.is = function(otherArray){
-  for (var i = otherArray.length; i > 0; --i)
-    if (otherArray[i] !== this[i]) return false;
-  return true;
-}
-ByteArray.prototype.to32Int = function() {
-  var x = 3, sum = 0, i = 0;
-  for (; i <= x; i++)
-    sum += Math.pow(256, (x-i)) * this[i];
-  return sum;
-}
-ByteArray.prototype.pushBytes = function(bytes) {
-  Array.prototype.push.apply(this, Array.prototype.slice.call(Buffer(bytes)));
-  return this;
-}
+/**
+ * Constructor
+ *
+ * @param {Buffer|Stream} input
+ * @return instance
+ */
 
-const PNG_MAGIC_NUMBER = ByteArray([137, 80, 78, 71, 13, 10, 26, 10]);
-
-// An interface for reading chunks from a PNG. `source` can be a buffer, file
-// descriptor or a string containing the path to a file.
-var Reader = function(source) {
-  if (!(this instanceof Reader)) return new Reader(source);
-  this.source = source;
-  this.data = null;
-  this.cursor = 0;
-  this.chunks = null;
-}
-Reader.prototype.getContents = function() {
-  var source = this.source
-    , len = null
-    , buf = null
-  if (Buffer.isBuffer(source))
-    return this.data = source;
-  else if ('number' === typeof source) {
-    len = fs.fstatSync(source).size
-    buf = Buffer(len);
-    fs.readSync(source, buf, 0, len);
-    return this.data = buf;
-  }
-  else if ('string' === typeof source) {
-    return this.data = fs.readFileSync(source);
-  }
-  throw "unrecognized source. must be filename, file descriptor or buffer";
-}
-Reader.prototype.rewind = function(len){
-  if (!len) this.cursor = 0;
-  else { this.cursor -= len }
-  if (this.cursor < 0) this.cursor = 0;;
-}
-Reader.prototype.eat = function(len) {
-  var buf = this.peek(len);
-  this.cursor += len;
-  return buf;
-}
-Reader.prototype.peek = function(len) {
-  if (!this.data) this.getContents();
-  return this.data.slice(this.cursor, (this.cursor + len));
-}
-
-// Ensures that the buffer being read is a PNG by comparing it to the known
-// PNG magic number, then read all of the chunks in the file to an array
-// `this.chunks`.
-Reader.prototype.readChunks = function() {
-  var magic_nom_nom
-    , chunk;
+function Png(input) {
+  this.parser = new Parser();
+  this.expecting = 'signature';
+  this.strict = true;
+  this.writable = true;
   this.chunks = [];
-  this.rewind();
-  magic_nom_nom = this.eat(8)
-  if (!PNG_MAGIC_NUMBER.is(magic_nom_nom)) throw "this is not a PNG";
-  while (chunk = this.readNextChunk()) this.chunks.push(chunk)
-  return this.chunks;
-}
-// Generally this should not be called by itself, `this.readChunks` should be
-// used. If `this.cursor` is not at a chunk boundary, this should probably cause
-// an error. Otherwise there's a chance that this can silently return garbage data.
-Reader.prototype.readNextChunk = function() {
-  if (this.cursor === this.data.length) return null;
-  var start = this.cursor
-    , len = ByteArray(this.eat(4)).to32Int()
-    , type = this.eat(4).toString()
-    , data = this.eat(len)
-    , crc = this.eat(4)
-    , end = this.cursor
-  return {start: start, len: len, type: type, data: data, crc: crc, end: end}
-}
-// Get an array of chunks that match the type. Possible types are listed here:
-// http://www.w3.org/TR/PNG/#11Chunks. Order is determined by where the chunks
-// appear in the file, and the return type will always be an array (even if
-// the specification only allows one one instance of that type)
-Reader.prototype.findByType = function(type) {
-  if (!this.chunks) this.readChunks()
-  return this.chunks.filter(function(chunk){
-    return (chunk.type === type);
-  });
-}
 
-
-// Writer is an interface for inserting chunks into a PNG. Other than
-// generating a valid, CRCd chunk, there is no validation to speak of. Using this
-// to add types with invalid data can break your PNG.
-//
-// Using pushBytes in this way causes five new buffers to be created. This can
-// definitely be done more efficiently.
-function Writer(source) {
-  if (!(this instanceof Writer)) return new Writer(source);
-  Reader.call(this, source)
+  // Input can be either a buffer or a stream. When we get a buffer, we can
+  // pretend it's a stream by writing the entire buffer at once, as if we just
+  // got a single `data` event. If it's not a buffer, check whether input
+  // quacks like a stream and pipe it back to this instance. Otherwise emit
+  // an error. We don't want to throw an error because the object is still
+  // salvageable.
+  if (input) {
+    if (Buffer.isBuffer(input))
+      this.write(input);
+    else if (typeof input.pipe === 'function')
+      input.pipe(this);
+    else {
+      var err = new TypeError('PNG constructor takes either a buffer or a stream');
+      this.emit('error', err);
+    }
+  }
 }
-Writer.prototype = new Reader;
-Writer.prototype.chunk = function(type, data) {
-  var body = ByteArray()
-    , chunk = ByteArray()
-  body
-    .pushBytes(type)
-    .pushBytes(data);
-  chunk
-    .pushBytes(util.intToBytes(data.length))
-    .pushBytes(body)
-    .pushBytes(util.intToBytes(util.crc32(body)));
+util.inherits(Png, Stream);
 
-  return Buffer(chunk);
-}
+/**
+ * Emit on the nextTick to allow for late-bound listeners.
+ *
+ * @see EventEmitter#emit
+ */
 
-// The specification for tEXt chunks requires a keyword and data, separated by
-// a null character, for the body of the chunk.
-Writer.prototype.tEXt = function(keyword, data) {
-  return this.chunk('tEXt', [keyword, data].join("\u0000"));
-}
-
-var getNullBytePos = function(buf) {
-  var len = buf.length, i = 0;
-  for (; i < len; i++) { if (buf[i] === 0) return i; }
-  return -1;
-}
-
-// Expose objects as well as shortcut methods for reading and writing tEXt chunks.
-exports.Reader = Reader;
-exports.Writer = Writer;
-exports.read = function(src, key){
-  var textChunks = Reader(src).findByType('tEXt')
-    , keybuf = ByteArray(key + "\u0000")
-    , keylen = keybuf.length
-  return textChunks.filter(function(textdata){
-    var databuf = textdata['data'];
-    return keybuf.is(databuf.slice(0, keylen));
-  }).map(function(textdata){
-    return textdata['data'].slice(keylen);
-  })
+Png.prototype.delayEmit = function delayEmit() {
+  var args = arguments;
+  process.nextTick(function () {
+    this.emit.apply(this, args);
+  }.bind(this));
+  return this;
 };
-exports.write = function(src, key, data) {
-  var writer = Writer(src)
-    , ihdr_end = writer.findByType('IHDR').pop().end
-    , chunk = writer.tEXt(key, data)
-    , len = writer.data.length + chunk.length
-    , buf = Buffer(len)
-  writer.data.copy(buf, 0, 0, ihdr_end);
-  chunk.copy(buf, ihdr_end)
-  writer.data.copy(buf, (ihdr_end + chunk.length), ihdr_end)
-  return buf;
+
+/**
+ * Ensure that this is valid png by checking the signature. Emits a
+ * `signature` event if successful, an `error` event if the signature
+ * is not valid.
+ */
+
+Png.prototype._signature = function signature() {
+  var parser = this.parser;
+  var validSignature = Png.SIGNATURE;
+
+  if (parser.getBuffer().length < validSignature.length)
+    return this;
+
+  var possibleSignature = parser.eat(validSignature.length)
+
+  // #TODO: if this is true, stop the stream, clean things up
+  if (!bufferEqual(possibleSignature, validSignature)) {
+    this.delayEmit('error', new Error('Not a fuckin Png, whaddya doin?'));
+    return this;
+  }
+
+  this.expecting = 'chunk';
+  this.delayEmit('signature');
+
+  // continue processing
+  this.process();
 };
-exports.writeOne = function(src, key, data) {
-  var writer = Writer(src)
-    , keybuf = ByteArray(key + "\u0000")
-    , keylen = keybuf.length
-    , keyexists = writer.findByType('tEXt').some(function(textdata){
-      return keybuf.is(textdata['data'].slice(0, keylen));
-    })
-  if (keyexists) { throw new Error('key already exists.'); }
-  return exports.write(src, key, data);
-}
+
+Png.prototype._chunk = function chunk() {
+  var parser = this.parser;
+
+  if (parser.position() < 8) {
+    var err = new Error('Need to handle signature first');
+    this.delayEmit('error', err);
+    return this;
+  }
+
+  // We need to make sure there are enough bytes in the buffer to read the
+  // entire chunk. If there are less than four bytes, we can't even read the
+  // length of the chunk, so we'll return and wait for the next `write`.
+  var remaining = parser.remaining()
+  if (!remaining || remaining < 4) return this;
+
+  // If we can read the length but there aren't enough bytes to read through
+  // the end of the chunk, wait for the next `write`.
+  var dataLength = parser.peak(4).readUInt32BE(0);
+  dataLength += Png.TYPE_LENGTH + Png.CRC_LENGTH;
+  if (remaining < dataLength) return this;
+
+  try {
+    var chunk = new Chunk(parser, this.IHDR);
+  } catch (err) {
+    this.delayEmit('error', err);
+    return this;
+  }
+
+  this.storeChunk(chunk);
+  this.delayEmit(chunk.type, chunk);
+
+  if (chunk.type === 'IDAT')
+    this.delayEmit('metadata end');
+
+  else if (chunk.type === 'IEND')
+    this.delayEmit('end', this.chunks);
+
+  this.process();
+};
+
+Png.prototype.storeChunk = function (chunk) {
+  // #TODO: chunks should know whether they are multi or singular and
+  // should be stored as an array or singularly accordingly.
+  this.chunks.push(chunk);
+  if (this[chunk.type]) {
+    this[chunk.type] = [this[chunk.type]]
+    this[chunk.type].push(chunk);
+  } else {
+    this[chunk.type] = chunk;
+  }
+};
+
+Png.prototype.process = function process() {
+  if (this.expecting === 'signature')
+    return this._signature();
+  if (this.expecting === 'chunk')
+    return this._chunk();
+};
+
+Png.prototype.write = function write(data) {
+  if (!data) return;
+  var parser = this.parser;
+  parser.write(data);
+  this.process();
+};
+Png.prototype.end = Png.prototype.write;
+Png.prototype.destroy = function noop() {};
+
+Png.SIGNATURE = Buffer([137, 80, 78, 71, 13, 10, 26, 10]);
+Png.TYPE_LENGTH = 4;
+Png.CRC_LENGTH = 4;
+
+module.exports = Png;
+
+// png.on('IHDR', function () {}); // 1, must appear first
+// png.on('tIME', function () {}); // ?
+// png.on('zTXt', function () {}); // *
+// png.on('tEXt', function () {}); // *
+// png.on('iTXt', function () {}); // *
+// png.on('pHYs', function () {}); // ?
+// png.on('sPLT', function () {}); // *
+// png.on('iCCP', function () {}); // ? (mutually exclusive with sRGB)
+// png.on('sRGB', function () {}); // ? (mutually exclusive with iCCP)
+// png.on('sBIT', function () {}); // ?
+// png.on('gAMA', function () {}); // ?
+// png.on('cHRM', function () {}); // ?
+// png.on('dSIG', function () {}); // 0 or 2
+// png.on('oFFs', function () {}); // ?
+// png.on('pCAL', function () {}); // ?
+// png.on('sCAL', function () {}); // ?
+// png.on('gIFg', function () {}); // *
+// png.on('gIFx', function () {}); // *
+// png.on('sTER', function () {}); // ?
+
+// png.on('PLTE', function () {}); // 1 or 0
+// png.on('tRNS', function () {}); // ?, if PLTE exists, must appear after
+// png.on('hIST', function () {}); // ?, can only appear with PLTE
+// png.on('bKGD', function () {}); // ?, if PLTE exists, must appear after
+
+// png.on('IDAT', function () {}); // +, must appear after all the shit above.
+// png.on('IEND', function () {}); // 1, must be the last thing.
