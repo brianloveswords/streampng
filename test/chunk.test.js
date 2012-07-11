@@ -105,12 +105,13 @@ test('cHRM', function (t) {
 
 test('gAMA', function (t) {
   var chunks = pngs.valid.gAMA;
-  t.plan(1 * chunks.length);
   chunks.forEach(function (valid) {
     var m = msgr(valid);
-    var chunk = new Chunk.gAMA(valid.buffer);
+    var chunk = new Chunk(valid.buffer);
     t.same(chunk.gamma, valid.gamma, m('gamma'));
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
   });
+  t.end();
 });
 
 test('tRNS', function (t) {
