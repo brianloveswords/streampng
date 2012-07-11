@@ -73,13 +73,13 @@ test('PLTE', function (t) {
   var chunks = pngs.valid.PLTE;
   t.plan(1 * chunks.length);
   chunks.forEach(function (valid) {
-    var chunk = new Chunk.PLTE(valid.buffer);
+    var chunk = new Chunk(valid.buffer, valid);
     valid.colours.forEach(function (colour, i) {
       var cc = chunk.colours[i];
       if (!colour.equals(cc))
         t.fail(m('colours'));
     })
-    t.pass(m('colours'));
+    t.ok(chunk.checkCRC(), 'crc checks out');
   });
 });
 
