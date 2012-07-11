@@ -2,10 +2,11 @@ var fs = require('fs');
 var test = require('tap').test;
 var Png = require('../lib/png.js');
 
-var buffer = fs.readFileSync(__dirname + '/pngs/bear-axe.png');
+var FILENAME = __dirname + '/pngs/tEXt-iTXt.png';
+var buffer = fs.readFileSync(FILENAME);
 function newStream(opts) {
   opts = opts || {}
-  return fs.createReadStream(__dirname + '/pngs/bear-axe.png', opts);
+  return fs.createReadStream(FILENAME, opts);
 }
 
 test('reading the png signature', {skip: false}, function (t) {
@@ -50,7 +51,7 @@ test('reading the png signature', {skip: false}, function (t) {
     t.plan(1);
     var png = new Png(newStream());
     png.once('signature', t.pass.bind(t, 'should emit signature event'));
-    png.once('error', function () { t.fail('should not emit error'); });
+    png.once('error', function (err) { t.fail('should not emit error') });
   });
 
   t.test('signature with buffer', function (t) {
@@ -85,6 +86,7 @@ test('reading chunks', function (t) {
         accum[c.type] = c;
         return accum
       }, {});
+
       t.ok('IHDR' in chunksByType, 'should find IHDR');
       t.ok('IDAT' in chunksByType, 'should find IDAT');
       t.ok('IEND' in chunksByType, 'should find IEND');
@@ -101,5 +103,4 @@ test('reading chunks', function (t) {
     });
     png.once('error', function () { t.fail('should not emit error'); });
   });
-
 });
