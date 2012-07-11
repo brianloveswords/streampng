@@ -1,16 +1,26 @@
 {
-  "name": "metapng",
-  "description": "Mess around with PNG metadata",
-  "version": "0.0.1",
-  "main": "./index.js",
-  "private": false,
+  "author": "Brian J. Brennan <brianloveswords@gmail.com> (http://bjb.io)",
+  "name": "streampng",
+  "description": "Streaming PNG encoder/decoder, compatible with PNGEXT 1.4.0 (not ready yet)",
+  "version": "0.0.0",
+  "homepage": "https://github.com/brianloveswords/streampng",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/brianloveswords/streampng.git"
+  },
+  "main": "index.js",
   "scripts": {
-    "test": "tap test/*.js"
+    "test": "./node_modules/.bin/tap test/*.test.js"
+  },
+  "dependencies": {
+    "buffer-crc32": "~0.1.1",
+    "buffer-equal": "~0.0.0"
   },
   "devDependencies": {
-    "vows": "0.5.x"
+    "tap": "~0.2.5"
   },
+  "optionalDependencies": {},
   "engines": {
-    "node": "~0.6.0"
+    "node": "*"
   }
 }
