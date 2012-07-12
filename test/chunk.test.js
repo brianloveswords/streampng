@@ -57,6 +57,7 @@ test('bad chunk', function (t) {
   }
   t.end();
 });
+chunktest('IHDR', ['width', 'height', 'bitDepth', 'colourType', 'compressionMethod', 'filterMethod', 'interlaceMethod'], false);
 chunktest('tEXt', ['keyword', 'text']);
 chunktest('zTXt', ['keyword', 'compressionMethod', 'compressedText'], function (t, m, chunk, valid) {
   chunk.inflate(function (err, text) {
@@ -90,7 +91,7 @@ chunktest('sPLT', ['paletteName', 'sampleDepth'], function (t, m, chunk, valid) 
   t.end();
 });
 chunktest('tIME', ['year', 'month', 'day', 'minute', 'second', 'date']);
-chunktest('oFFs', ['position'])
+chunktest('oFFs', ['position', 'unitSpecifier'], false)
 chunktest('pCAL', ['originalZero, originalMaximum', 'equationType', 'parameters'], false);
 chunktest('sCAL', ['unitSpecifier', 'width', 'height'], false);
 chunktest('gIFg', ['disposalMethod', 'userInput', 'delay'], false);
