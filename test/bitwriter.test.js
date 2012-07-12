@@ -80,6 +80,16 @@ test('16 bits in 32 bit frame', function (t) {
   t.end();
 });
 
+test('8 bits signed in 32 bit frame', function (t) {
+  var buf = new BitWriter(8);
+  buf.write(-1, { size: 32 });
+  t.same(buf.out(), Buffer([0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00]));
+
+  buf.write(-2, { size: 32 });
+  t.same(buf.out(), Buffer([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe]));
+  t.end();
+});
+
 test('string writing', function (t) {
   var buf = new BitWriter(8);
   buf.write('sup');
