@@ -1,10 +1,13 @@
-var B = require('buffer').Buffer;
 var crc32 = require('buffer-crc32');
 var test = require('tap').test;
 var Chunk = require('../lib/chunk.js');
 var pngs = require('./testpngs.js');
 
-var testChunk = B.concat([B([0, 0, 0, 0]), B('IEND'), crc32('IEND')]);
+var testChunk = Buffer.concat([
+  Buffer([0, 0, 0, 0]),
+  Buffer('IEND'),
+  crc32('IEND')
+]);
 
 function msgr(c) {
   return function m(str) { return c.file + ': ' + str + ' should match' }
@@ -23,7 +26,7 @@ test('basic chunk parsing', function (t) {
 
 test('bad chunk', function (t) {
   t.plan(1);
-  var badChunk = B(32);
+  var badChunk = Buffer(32);
   badChunk.fill(16);
   try {
     var c = new Chunk(badChunk);
@@ -64,10 +67,11 @@ test('zTXt', function (t) {
 
 test('iTXt', function (t) {
   var chunks = pngs.valid.iTXt;
-  t.plan(3 * chunks.length);
+  t.plan(4 * chunks.length);
   chunks.forEach(function (valid) {
     var m = msgr(valid);
-    var chunk = new Chunk.iTXt(valid.buffer);
+    var chunk = new Chunk(valid.buffer);
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
     t.same(chunk.keyword, valid.keyword, m('keyword'));
     t.same(chunk.compressed, valid.compressed, m('compressed boolean'));
     chunk.inflateText(function (err, text) {
@@ -281,11 +285,11 @@ test('creating chunks from thin air', function (t) {
     //   minute: 34,
     //   second: 56
     // });
-    var length = B([0x00, 0x00, 0x00, 0x08]);
-    var type = B('tIME');
-    var data = B([0x07, 0xd0, 0x01, 0x01, 0x0c, 0x22, 0x38]);
-    var crc = crc32(B.concat([type, data]))
-    var validBuffer = B.concat([length, type, data, crc]);
+    var length = Buffer([0x00, 0x00, 0x00, 0x08]);
+    var type = Buffer('tIME');
+    var data = Buffer([0x07, 0xd0, 0x01, 0x01, 0x0c, 0x22, 0x38]);
+    var crc = crc32(Buffer.concat([type, data]))
+    var validBuffer = Buffer.concat([length, type, data, crc]);
 
     console.dir(validBuffer);
 
