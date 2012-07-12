@@ -162,3 +162,18 @@ test('chaining writes', function (t) {
   t.same(buf.out(), Buffer([0xf0, 0x0d, 0xba, 0xbe]));
   t.end();
 });
+
+test('writing zero', function (t) {
+  var buf = BitWriter(4);
+  buf.write(0);
+  buf.write(1);
+  t.same(buf.out(), Buffer([0x00, 0x01, 0x00, 0x00]));
+  t.end();
+});
+
+test('writing foreign text', function (t) {
+  var buf = BitWriter(18)
+  buf.write('शीर्षक');
+  t.same(buf.out(), Buffer([0xe0, 0xa4, 0xb6, 0xe0, 0xa5, 0x80, 0xe0, 0xa4, 0xb0, 0xe0, 0xa5, 0x8d, 0xe0, 0xa4, 0xb7, 0xe0, 0xa4, 0x95]));
+  t.end();
+});
