@@ -18,6 +18,7 @@ function chunktest(type, fields, crc, additional) {
   crc = typeof crc === 'undefined' ? true : crc;
 
   var chunks = pngs.valid[type];
+  if (!chunks) throw new Error(type + ' not defined in testpngs');
   test(type, function (t) {
     chunks.forEach(function (valid) {
       var m = msgr(valid);
@@ -94,7 +95,7 @@ chunktest('pCAL', ['originalZero, originalMaximum', 'equationType', 'parameters'
 chunktest('sCAL', ['unitSpecifier', 'width', 'height'], false);
 chunktest('gIFg', ['disposalMethod', 'userInput', 'delay'], false);
 chunktest('gIFx', ['appIdentifier', 'authCode', 'appData'], false);
-
+chunktest('sTER', ['mode'], false);
 // test('creating chunks from thin air', function (t) {
 //   t.test('tIME', function (t) {
 //     // var chunk = new Chunk.tIME({
