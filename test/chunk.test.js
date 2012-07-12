@@ -9,11 +9,32 @@ var testChunk = Buffer.concat([
   crc32('IEND')
 ]);
 
-function msgr(c) {
-  return function m(str) { return c.file + ': ' + str + ' should match' }
-}
-
+function msgr(c) { return function m(str) { return c.file + ': ' + str + ' should match' }}
 function m(str) { return str + ' should match'; }
+function chunktest(type, fields, crc, additional) {
+  if (typeof crc === 'function')
+    additional = crc, crc = true;
+
+  crc = typeof crc === 'undefined' ? true : crc;
+
+  var chunks = pngs.valid[type];
+  test(type, function (t) {
+    chunks.forEach(function (valid) {
+      var m = msgr(valid);
+      var chunk = new Chunk(valid.buffer, valid);
+      fields.forEach(function (f) {
+        t.same(chunk[f], valid[f], m(f));
+      });
+
+      if (crc)
+        t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
+
+      if (additional)
+        t.test(type + ' additional tests', function (t) { additional(t, m, chunk, valid); });
+    });
+    t.end();
+  });
+}
 
 test('basic chunk parsing', function (t) {
   var c = new Chunk(testChunk);
@@ -35,293 +56,45 @@ test('bad chunk', function (t) {
   }
   t.end();
 });
-
-test('tEXt', function (t) {
-  var chunks = pngs.valid.tEXt;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer, valid);
-    t.same(chunk.keyword, valid.keyword, m('keyword'));
-    t.same(chunk.text, valid.text, m('text'));
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc checks out'));
-  });
-  t.end();
-});
-
-test('zTXt', function (t) {
-  var chunks = pngs.valid.zTXt;
-  t.plan(6 * chunks.length);
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer, valid);
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
-    t.same(chunk.keyword, valid.keyword, m('keyword'));
-    t.same(chunk.compressionMethod, valid.compressionMethod, m('compression method'));
-    t.same(chunk.compressedText, valid.compressedText, m('compressed text'));
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
-    chunk.inflateText(function (err, text) {
-      t.same(text, valid.text);
-    });
+chunktest('tEXt', ['keyword', 'text']);
+chunktest('zTXt', ['keyword', 'compressionMethod', 'compressedText'], function (t, m, chunk, valid) {
+  chunk.inflateText(function (err, text) {
+    t.same(text, valid.text, m('inflated text'));
+    t.end();
   });
 });
-
-test('iTXt', function (t) {
-  var chunks = pngs.valid.iTXt;
-  t.plan(4 * chunks.length);
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer);
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
-    t.same(chunk.keyword, valid.keyword, m('keyword'));
-    t.same(chunk.compressed, valid.compressed, m('compressed boolean'));
-    chunk.inflateText(function (err, text) {
-      t.same(chunk.text, text, m('inflated text'));
-    });
+chunktest('iTXt', ['keyword', 'compressed'], function (t, m, chunk, valid) {
+  chunk.inflateText(function (err, text) {
+    t.same(text, valid.text, m('inflated text'));
+    t.end();
   });
 });
-
-test('PLTE', function (t) {
-  var chunks = pngs.valid.PLTE;
-  t.plan(1 * chunks.length);
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer, valid);
-    valid.colours.forEach(function (colour, i) {
-      var cc = chunk.colours[i];
-      if (!colour.equals(cc))
-        t.fail(m('colours'));
-    })
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
-  });
-});
-
-test('cHRM', function (t) {
-  var chunks = pngs.valid.cHRM;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer);
-    t.ok(chunk.whitePoint.equals(valid.whitePoint), m('whitePoint'));
-    t.ok(chunk.red.equals(valid.red), m('red point'));
-    t.ok(chunk.green.equals(valid.green), m('green point'));
-    t.ok(chunk.blue.equals(valid.blue), m('blue point'));
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
-  });
-  t.end();
-});
-
-test('gAMA', function (t) {
-  var chunks = pngs.valid.gAMA;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer);
-    t.same(chunk.gamma, valid.gamma, m('gamma'));
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
-  });
-  t.end();
-});
-
-test('tRNS', function (t) {
-  var chunks = pngs.valid.tRNS;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer, valid);
-    var colour = valid.colourType;
-
-    if (colour === 0)
-      t.same(chunk.grey, valid.grey, m('grey sample value'));
-
-    else if (colour === 2) {
-      t.same(chunk.red, valid.red, m('red sample value'));
-      t.same(chunk.green, valid.green, m('green sample value'));
-      t.same(chunk.blue, valid.blue, m('blue sample value'));
-    }
-
-    else
-      t.same(chunk.palette, valid.palette)
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
-  });
-  t.end();
-});
-
-test('iCCP', function (t) {
-  var valid = pngs.valid.iCCP[0];
-  var chunk = new Chunk(valid.buffer, valid);
-  var m = msgr(valid);
-  t.same(chunk.profileName, valid.profileName, m('profileName'));
-  t.same(chunk.compressionMethod, valid.compressionMethod, m('compression method'));
-  t.same(chunk.compressedProfile, valid.compressedProfile, m('compressed profile'));
+chunktest('PLTE', ['colours']);
+chunktest('cHRM', ['whitePoint', 'red', 'green', 'blue']);
+chunktest('gAMA', ['gamma']);
+chunktest('tRNS', ['grey', 'red', 'blue', 'palette'])
+chunktest('iCCP', ['profileName', 'compressionMethod', 'compressedProfile'], false, function (t, m, chunk, valid) {
   chunk.inflateProfile(function (err, data) {
     t.ok(data, 'should be able to inflate profile');
     t.end();
   });
 });
-
-test('bKGD', function (t) {
-  var chunks = pngs.valid.bKGD;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer, valid);
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc checks out'));
-
-    var colour = valid.colourType;
-    if (colour === 0 || colour === 4)
-      t.same(chunk.greyscale, valid.greyscale, m('greyscale'));
-
-    else if (colour === 2 || colour === 6) {
-      t.same(chunk.red, valid.red, m('red'));
-      t.same(chunk.green, valid.green, m('green'));
-      t.same(chunk.blue, valid.blue, m('blue'));
-    }
-
-    else // if (colour === 3)
-      t.same(chunk.paletteIndex, valid.paletteIndex, m('paletteIndex'));
-  });
+chunktest('bKGD', ['greyscale', 'red', 'green', 'blue', 'paletteIndex']);
+chunktest('pHYs', ['unitSpecifier', 'pixelsPerUnit']);
+chunktest('sRGB', ['renderingIntent']);
+chunktest('sBIT', ['greyscale', 'red', 'green', 'blue', 'alpha']);
+chunktest('hIST', ['frequencies']);
+chunktest('sPLT', ['paletteName', 'sampleDepth'], function (t, m, chunk, valid) {
+  t.same(chunk.palette.length, valid.entries, m('number of entries'));
   t.end();
 });
+chunktest('tIME', ['year', 'month', 'day', 'minute', 'second', 'date']);
+chunktest('oFFs', ['position'])
+chunktest('pCAL', ['originalZero, originalMaximum', 'equationType', 'parameters'], false);
+chunktest('sCAL', ['unitSpecifier', 'width', 'height'], false);
+chunktest('gIFg', ['disposalMethod', 'userInput', 'delay'], false);
+//chunktest('gIFx', ['appIdentifier', 'authCode', 'appData'], false);
 
-test('pHYs', function (t) {
-  var chunks = pngs.valid.pHYs;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer, valid);
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
-    t.same(chunk.unitSpecifier, valid.unitSpecifier, m('unit specifier'));
-    t.ok(chunk.pixelsPerUnit.equals(valid.pixelsPerUnit), m('pixels per unit'));
-  });
-  t.end();
-});
-
-test('sRGB', function (t) {
-  var chunks = pngs.valid.sRGB;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer, valid);
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
-    t.same(chunk.renderingIntent, valid.renderingIntent, m('rendering intent'));
-  });
-  t.end();
-});
-
-test('sBIT', function (t) {
-  var chunks = pngs.valid.sBIT;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer, valid);
-    var colour = valid.colourType;
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
-    if (colour === 0)
-      t.same(chunk.greyscale, valid.greyscale, m('greyscale bits'));
-
-    else if (colour === 2 || colour === 3) {
-      t.same(chunk.red, valid.red, m('red bits'));
-      t.same(chunk.green, valid.green, m('green bits'));
-      t.same(chunk.blue, valid.blue, m('blue bits'));
-    }
-
-    else if (colour === 4) {
-      t.same(chunk.greyscale, valid.greyscale, m('greyscale bits'));
-      t.same(chunk.alpha, valid.alpha, m('alpha bits'));
-    }
-
-    else if (colour === 6) {
-      t.same(chunk.red, valid.red, m('red bits'));
-      t.same(chunk.green, valid.green, m('green bits'));
-      t.same(chunk.blue, valid.blue, m('blue bits'));
-      t.same(chunk.alpha, valid.alpha, m('alpha bits'));
-    }
-  });
-  t.end();
-});
-
-test('hIST', function (t) {
-  var chunks = pngs.valid.hIST;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer, valid);
-    t.same(chunk.frequencies, valid.frequencies, m('frequencies'));
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
-  });
-  t.end();
-});
-
-test('sPLT', function (t) {
-  var chunks = pngs.valid.sPLT;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer);
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
-    t.same(chunk.paletteName, valid.paletteName, m('palette name'));
-    t.same(chunk.sampleDepth, valid.sampleDepth, m('sample depth'));
-    t.same(chunk.palette.length, valid.entries, m('number of entries'));
-  });
-  t.end();
-});
-
-test('tIME', function (t) {
-  var chunks = pngs.valid.tIME;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer, valid);
-    var date = new Date(valid.year, valid.month, valid.day, valid.hour, valid.minute, valid.second);
-    t.same(chunk.year, valid.year, m('year'));
-    t.same(chunk.month, valid.month, m('month'));
-    t.same(chunk.day, valid.day, m('day'));
-    t.same(chunk.hour, valid.hour, m('hour'));
-    t.same(chunk.minute, valid.minute, m('minute'));
-    t.same(chunk.second, valid.second, m('second'));
-    t.same(chunk.date, date, m('date'));
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
-  });
-  t.end();
-});
-
-test('oFFs', function (t) {
-  var chunks = pngs.valid.oFFs;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer, valid);
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
-    t.ok(chunk.position.equals(valid.position), m('position'));
-  });
-  t.end();
-});
-
-test('pCAL', function (t) {
-  var chunks = pngs.valid.pCAL;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer, valid);
-    t.same(chunk.originalZero, valid.originalZero, m('original zero'));
-    t.same(chunk.originalMaximum, valid.originalMaximum, m('original maximum'));
-    t.same(chunk.equationType, valid.equationType, m('equation type'));
-    t.same(chunk.parameters, valid.parameters, m('parameters'));
-  });
-  t.end();
-});
-
-test('sCAL', function (t) {
-  var chunks = pngs.valid.sCAL;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer, valid);
-    t.same(chunk.unitSpecifier, valid.unitSpecifier, m('unit specifier'));
-    t.same(chunk.width, valid.width, m('width'));
-    t.same(chunk.height, valid.height, m('height'));
-  });
-  t.end();
-});
-
-test('gIFg', function (t) {
-  var chunks = pngs.valid.gIFg;
-  chunks.forEach(function (valid) {
-    var m = msgr(valid);
-    var chunk = new Chunk(valid.buffer, valid);
-    t.same(chunk.disposalMethod, valid.disposalMethod, m('disposal method'));
-    t.same(chunk.userInput, valid.userInput, m('user input'));
-    t.same(chunk.delay, valid.delay, m('delay'));
-  });
-  t.end();
-});
 // test('creating chunks from thin air', function (t) {
 //   t.test('tIME', function (t) {
 //     // var chunk = new Chunk.tIME({
