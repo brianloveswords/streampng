@@ -99,21 +99,17 @@ chunktest('gIFx', ['appIdentifier', 'authCode', 'appData'], false);
 chunktest('sTER', ['mode'], false);
 
 
-test('creating chunks from thin air', function (t) {
-  t.test('IHDR', function (t) {
-    var valid = pngs.valid.IHDR[0];
-    var chunk = new Chunk.IHDR(valid);
-    t.same(chunk.buffer(), valid.buffer);
+function creationtest(type) {
+  test('creating ' + type, function (t) {
+    var valid = pngs.valid[type];
+    if (!valid) throw new Error('could not find valid chunk by name: ' + type);
+    valid = valid[0];
+
+    var chunk = new Chunk[type](valid);
+    t.same(chunk.buffer(), valid.buffer, m('buffers'));
     t.end();
   });
-
-  t.test('tIME', function (t) {
-    var valid = pngs.valid.tIME[0];
-    var chunk = new Chunk.tIME(valid);
-    t.same(chunk.buffer(), valid.buffer);
-    t.end();
-  });
-
-
-  t.end();
-});
+}
+creationtest('IHDR');
+creationtest('tIME');
+creationtest('PLTE');
