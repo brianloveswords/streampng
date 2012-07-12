@@ -47,7 +47,6 @@ test('basic chunk parsing', function (t) {
 });
 
 test('bad chunk', function (t) {
-  t.plan(1);
   var badChunk = Buffer(32);
   badChunk.fill(16);
   try {
@@ -118,3 +117,4 @@ creationtest('IHDR');
 creationtest('IEND');
 creationtest('tIME');
 creationtest('PLTE');
+creationtest('tEXt');
