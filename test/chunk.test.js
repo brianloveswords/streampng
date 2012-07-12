@@ -93,7 +93,7 @@ chunktest('oFFs', ['position'])
 chunktest('pCAL', ['originalZero, originalMaximum', 'equationType', 'parameters'], false);
 chunktest('sCAL', ['unitSpecifier', 'width', 'height'], false);
 chunktest('gIFg', ['disposalMethod', 'userInput', 'delay'], false);
-//chunktest('gIFx', ['appIdentifier', 'authCode', 'appData'], false);
+chunktest('gIFx', ['appIdentifier', 'authCode', 'appData'], false);
 
 // test('creating chunks from thin air', function (t) {
 //   t.test('tIME', function (t) {
