@@ -275,28 +275,37 @@ test('tIME', function (t) {
   t.end();
 });
 
-test('creating chunks from thin air', function (t) {
-  t.test('tIME', function (t) {
-    // var chunk = new Chunk.tIME({
-    //   year: 2000,
-    //   month: 1,
-    //   day: 1,
-    //   hour: 12,
-    //   minute: 34,
-    //   second: 56
-    // });
-    var length = Buffer([0x00, 0x00, 0x00, 0x08]);
-    var type = Buffer('tIME');
-    var data = Buffer([0x07, 0xd0, 0x01, 0x01, 0x0c, 0x22, 0x38]);
-    var crc = crc32(Buffer.concat([type, data]))
-    var validBuffer = Buffer.concat([length, type, data, crc]);
-
-    console.dir(validBuffer);
-
-    t.end();
+test('oFFs', function (t) {
+  var chunks = pngs.valid.oFFs;
+  chunks.forEach(function (valid) {
+    var m = msgr(valid);
+    var chunk = new Chunk(valid.buffer, valid);
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'))
+    t.ok(chunk.position.equals(valid.position), m('position'));
   });
-
-
-
   t.end();
 });
+
+
+// test('creating chunks from thin air', function (t) {
+//   t.test('tIME', function (t) {
+//     // var chunk = new Chunk.tIME({
+//     //   year: 2000,
+//     //   month: 1,
+//     //   day: 1,
+//     //   hour: 12,
+//     //   minute: 34,
+//     //   second: 56
+//     // });
+//     var length = Buffer([0x00, 0x00, 0x00, 0x08]);
+//     var type = Buffer('tIME');
+//     var data = Buffer([0x07, 0xd0, 0x01, 0x01, 0x0c, 0x22, 0x38]);
+//     var crc = crc32(Buffer.concat([type, data]))
+//     var validBuffer = Buffer.concat([length, type, data, crc]);
+
+//     console.dir(validBuffer);
+
+//     t.end();
+//   });
+//   t.end();
+// });
