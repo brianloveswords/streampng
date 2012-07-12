@@ -255,7 +255,7 @@ test('tIME', function (t) {
   var chunks = pngs.valid.tIME;
   chunks.forEach(function (valid) {
     var m = msgr(valid);
-    var chunk = new Chunk.tIME(valid.buffer, valid);
+    var chunk = new Chunk(valid.buffer, valid);
     var date = new Date(valid.year, valid.month, valid.day, valid.hour, valid.minute, valid.second);
     t.same(chunk.year, valid.year, m('year'));
     t.same(chunk.month, valid.month, m('month'));
@@ -264,6 +264,7 @@ test('tIME', function (t) {
     t.same(chunk.minute, valid.minute, m('minute'));
     t.same(chunk.second, valid.second, m('second'));
     t.same(chunk.date, date, m('date'));
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
   });
   t.end();
 });
