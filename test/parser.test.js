@@ -1,4 +1,3 @@
-var B = require('buffer').Buffer;
 var test = require('tap').test;
 var Parser = require('../lib/parser.js');
 var assert = require('assert');
@@ -7,9 +6,9 @@ var data = Buffer('where did you get your _____?');
 test('Parser#eat', function (t) {
   t.test('returns the right values after eating', function (t) {
     var p = new Parser(data);
-    t.same(p.eat(1), B('w'));
-    t.same(p.eat(2), B('he'));
-    t.same(p.eat(4), B('re d'));
+    t.same(p.eat(1), Buffer('w'));
+    t.same(p.eat(2), Buffer('he'));
+    t.same(p.eat(4), Buffer('re d'));
     t.end();
   });
 
@@ -28,15 +27,18 @@ test('Parser#eat', function (t) {
   });
 
   t.test('can cast values to ints', function (t) {
-    var p = new Parser(B([0x80]));
-    t.same(p.eat(1, { integer: true }), 0x80);
+    p = new Parser(Buffer([0x10, 0x80]));
+    t.same(p.eat(2, { integer: true }), 4224);
 
-    p = new Parser(B([0x10, 0x80]));
-    t.same(p.eat(2, { integer: true }), 0x1080);
-
-    p = new Parser(B([0x30, 0x20, 0x10, 0x80]));
-    t.same(p.eat(4, { integer: true }), 0x30201080);
+    p = new Parser(Buffer([0x30, 0x20, 0x10, 0x80]));
+    t.same(p.eatInt(4), 807407744);
     t.end();
+
+    var p = new Parser(Buffer([0xf6]));
+    t.same(p.eatUInt(1), 246);
+
+    p = new Parser(Buffer([0xff, 0xff, 0xd8, 0xf1]));
+    console.dir(p.eatInt(4)); p.rewind();
   });
   t.end();
 });
@@ -46,7 +48,7 @@ test('Parser#rewind', function (t) {
   p.eat(9);
   p.rewind(3);
   t.same(p.position(), 6, 'should be 9 - 3');
-  t.same(p.eat(3), B('did'), 'eating 3 should return `did`');
+  t.same(p.eat(3), Buffer('did'), 'eating 3 should return `did`');
   t.end();
 });
 
@@ -58,13 +60,13 @@ test('Parser#peak', function (t) {
   t.same(p.peak(), null, 'should be null');
 
   p.rewind();
-  t.same(p.peak(5), B('where'));
+  t.same(p.peak(5), Buffer('where'));
   t.end();
 });
 
 
 test('Parser#eatString', function (t) {
-  var data = B('what the who');
+  var data = Buffer('what the who');
   data[4] = 0; data[8] = 0;
   t.test('eats up until it finds a null byte', function (t) {
     var p = new Parser(data);
@@ -84,7 +86,7 @@ test('Parser#eatString', function (t) {
   t.test('includes null byte in offset but not string', function (t) {
     var p = new Parser(data);
     t.same(p.eatString(), 'what');
-    t.same(p.eat(3), B('the'));
+    t.same(p.eat(3), Buffer('the'));
     t.end();
   });
 
@@ -96,10 +98,10 @@ test('Parser#eatRemaining', function (t) {
   var data = Buffer(string);
   t.test('finish eating the buffer', function (t) {
     var p = new Parser(data);
-    t.same(p.eatRemaining(), B(string));
+    t.same(p.eatRemaining(), Buffer(string));
     t.same(p.eatRemaining(), null);
     p.rewind(5);
-    t.same(p.eatRemaining(), B('that?'));
+    t.same(p.eatRemaining(), Buffer('that?'));
     t.end();
   });
 
@@ -108,7 +110,7 @@ test('Parser#eatRemaining', function (t) {
     var chunks = p.eatRest({ chunkSize: 2 });
     var num = Math.ceil(data.length / 2);
     t.same(chunks.length, num, 'should have right amount of chunks');
-    t.same(chunks[0], B('ho'), 'first chunk should match');
+    t.same(chunks[0], Buffer('ho'), 'first chunk should match');
     t.end();
   });
 
@@ -123,9 +125,9 @@ test('Parser#write', function (t) {
 
   t.test('appends another buffer to the internal buffer', function (t) {
     var p = new Parser();
-    t.same(p.getBuffer(), B(''));
-    t.same(p.write(data), B('lol'));
-    t.same(p.write(moar), B('lollercoaster'));
+    t.same(p.getBuffer(), Buffer(''));
+    t.same(p.write(data), Buffer('lol'));
+    t.same(p.write(moar), Buffer('lollercoaster'));
     t.end();
   });
 
@@ -133,7 +135,7 @@ test('Parser#write', function (t) {
 });
 
 test('Parser#remaining', function (t) {
-  var data = B('lollerskates');
+  var data = Buffer('lollerskates');
   var p = new Parser(data);
 
   t.same(p.remaining(), data.length);
