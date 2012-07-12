@@ -299,6 +299,17 @@ test('pCAL', function (t) {
   t.end();
 });
 
+test('sCAL', function (t) {
+  var chunks = pngs.valid.sCAL;
+  chunks.forEach(function (valid) {
+    var m = msgr(valid);
+    var chunk = new Chunk(valid.buffer, valid);
+    t.same(chunk.unitSpecifier, valid.unitSpecifier, m('unit specifier'));
+    t.same(chunk.width, valid.width, m('width'));
+    t.same(chunk.height, valid.height, m('height'));
+  });
+  t.end();
+});
 
 // test('creating chunks from thin air', function (t) {
 //   t.test('tIME', function (t) {
