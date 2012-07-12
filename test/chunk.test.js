@@ -178,9 +178,10 @@ test('pHYs', function (t) {
   var chunks = pngs.valid.pHYs;
   chunks.forEach(function (valid) {
     var m = msgr(valid);
-    var chunk = new Chunk.pHYs(valid.buffer);
+    var chunk = new Chunk(valid.buffer, valid);
     t.same(chunk.unitSpecifier, valid.unitSpecifier, m('unit specifier'));
     t.ok(chunk.pixelsPerUnit.equals(valid.pixelsPerUnit), m('pixels per unit'));
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
   });
   t.end();
 });
