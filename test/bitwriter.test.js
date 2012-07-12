@@ -155,3 +155,11 @@ test('array access', function (t) {
   t.same(buf[0], 0x10);
   t.end();
 });
+
+test('chaining writes', function (t) {
+  var buf = BitWriter(4);
+  buf.write16(0xf00d).write16(0xbabe);
+  t.same(buf.out(), Buffer([0xf0, 0x0d, 0xba, 0xbe]));
+  t.end();
+});
+
