@@ -43,6 +43,13 @@ test('Parser#eat', function (t) {
   t.end();
 });
 
+test('Parser#eatBool', function (t) {
+  t.same(true, (new Parser(Buffer([0x01])).eatBool()));
+  t.same(false, (new Parser(Buffer([0x00])).eatBool()));
+  t.end();
+});
+
+
 test('Parser#rewind', function (t) {
   var p = new Parser(data);
   p.eat(9);
