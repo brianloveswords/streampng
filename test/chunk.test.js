@@ -231,8 +231,9 @@ test('hIST', function (t) {
   var chunks = pngs.valid.hIST;
   chunks.forEach(function (valid) {
     var m = msgr(valid);
-    var chunk = new Chunk.hIST(valid.buffer, valid);
+    var chunk = new Chunk(valid.buffer, valid);
     t.same(chunk.frequencies, valid.frequencies, m('frequencies'));
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
   });
   t.end();
 });
