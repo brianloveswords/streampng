@@ -120,3 +120,4 @@ creationtest('PLTE');
 creationtest('tEXt');
 creationtest('zTXt');
 creationtest('iTXt');
+creationtest('cHRM');
