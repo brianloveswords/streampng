@@ -100,18 +100,20 @@ chunktest('sTER', ['mode'], false);
 
 
 test('creating chunks from thin air', function (t) {
-  t.test('tIME', function (t) {
-    var chunk = new Chunk.tIME({
-      year: 2000,
-      month: 1,
-      day: 1,
-      hour: 12,
-      minute: 34,
-      second: 56
-    });
-    var valid = pngs.valid.tIME[0];
+  t.test('IHDR', function (t) {
+    var valid = pngs.valid.IHDR[0];
+    var chunk = new Chunk.IHDR(valid);
     t.same(chunk.buffer(), valid.buffer);
     t.end();
   });
+
+  t.test('tIME', function (t) {
+    var valid = pngs.valid.tIME[0];
+    var chunk = new Chunk.tIME(valid);
+    t.same(chunk.buffer(), valid.buffer);
+    t.end();
+  });
+
+
   t.end();
 });
