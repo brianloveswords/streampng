@@ -98,7 +98,7 @@ chunktest('gIFg', ['disposalMethod', 'userInput', 'delay'], false);
 chunktest('gIFx', ['appIdentifier', 'authCode', 'appData'], false);
 chunktest('sTER', ['mode'], false);
 chunktest('IDAT', ['data']);
-
+chunktest('IEND', []);
 
 function creationtest(type) {
   test('creating ' + type, function (t) {
@@ -113,5 +113,6 @@ function creationtest(type) {
 }
 creationtest('IDAT');
 creationtest('IHDR');
+creationtest('IEND');
 creationtest('tIME');
 creationtest('PLTE');

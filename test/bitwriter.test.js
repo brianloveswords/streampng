@@ -162,4 +162,3 @@ test('chaining writes', function (t) {
   t.same(buf.out(), Buffer([0xf0, 0x0d, 0xba, 0xbe]));
   t.end();
 });
-
