@@ -64,7 +64,7 @@ chunktest('zTXt', ['keyword', 'compressionMethod', 'compressedText'], function (
     t.end();
   });
 });
-chunktest('iTXt', ['keyword', 'compressed'], function (t, m, chunk, valid) {
+chunktest('iTXt', ['keyword', 'compressed', 'compressionMethod'], function (t, m, chunk, valid) {
   chunk.inflate(function (err, text) {
     t.same(text, valid.text, m('inflated text'));
     t.end();
@@ -119,3 +119,4 @@ creationtest('tIME');
 creationtest('PLTE');
 creationtest('tEXt');
 creationtest('zTXt');
+creationtest('iTXt');
