@@ -179,9 +179,9 @@ test('pHYs', function (t) {
   chunks.forEach(function (valid) {
     var m = msgr(valid);
     var chunk = new Chunk(valid.buffer, valid);
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
     t.same(chunk.unitSpecifier, valid.unitSpecifier, m('unit specifier'));
     t.ok(chunk.pixelsPerUnit.equals(valid.pixelsPerUnit), m('pixels per unit'));
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
   });
   t.end();
 });
@@ -201,8 +201,9 @@ test('sBIT', function (t) {
   var chunks = pngs.valid.sBIT;
   chunks.forEach(function (valid) {
     var m = msgr(valid);
-    var chunk = new Chunk.sBIT(valid.buffer, valid);
+    var chunk = new Chunk(valid.buffer, valid);
     var colour = valid.colourType;
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
     if (colour === 0)
       t.same(chunk.greyscale, valid.greyscale, m('greyscale bits'));
 
