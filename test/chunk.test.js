@@ -59,13 +59,13 @@ test('bad chunk', function (t) {
 });
 chunktest('tEXt', ['keyword', 'text']);
 chunktest('zTXt', ['keyword', 'compressionMethod', 'compressedText'], function (t, m, chunk, valid) {
-  chunk.inflateText(function (err, text) {
+  chunk.inflate(function (err, text) {
     t.same(text, valid.text, m('inflated text'));
     t.end();
   });
 });
 chunktest('iTXt', ['keyword', 'compressed'], function (t, m, chunk, valid) {
-  chunk.inflateText(function (err, text) {
+  chunk.inflate(function (err, text) {
     t.same(text, valid.text, m('inflated text'));
     t.end();
   });
@@ -75,7 +75,7 @@ chunktest('cHRM', ['whitePoint', 'red', 'green', 'blue']);
 chunktest('gAMA', ['gamma']);
 chunktest('tRNS', ['grey', 'red', 'blue', 'palette'])
 chunktest('iCCP', ['profileName', 'compressionMethod', 'compressedProfile'], false, function (t, m, chunk, valid) {
-  chunk.inflateProfile(function (err, data) {
+  chunk.inflate(function (err, data) {
     t.ok(data, 'should be able to inflate profile');
     t.end();
   });
@@ -96,25 +96,21 @@ chunktest('sCAL', ['unitSpecifier', 'width', 'height'], false);
 chunktest('gIFg', ['disposalMethod', 'userInput', 'delay'], false);
 chunktest('gIFx', ['appIdentifier', 'authCode', 'appData'], false);
 chunktest('sTER', ['mode'], false);
-// test('creating chunks from thin air', function (t) {
-//   t.test('tIME', function (t) {
-//     // var chunk = new Chunk.tIME({
-//     //   year: 2000,
-//     //   month: 1,
-//     //   day: 1,
-//     //   hour: 12,
-//     //   minute: 34,
-//     //   second: 56
-//     // });
-//     var length = Buffer([0x00, 0x00, 0x00, 0x08]);
-//     var type = Buffer('tIME');
-//     var data = Buffer([0x07, 0xd0, 0x01, 0x01, 0x0c, 0x22, 0x38]);
-//     var crc = crc32(Buffer.concat([type, data]))
-//     var validBuffer = Buffer.concat([length, type, data, crc]);
 
-//     console.dir(validBuffer);
 
-//     t.end();
-//   });
-//   t.end();
-// });
+test('creating chunks from thin air', function (t) {
+  t.test('tIME', function (t) {
+    var chunk = new Chunk.tIME({
+      year: 2000,
+      month: 1,
+      day: 1,
+      hour: 12,
+      minute: 34,
+      second: 56
+    });
+    var valid = pngs.valid.tIME[0];
+    t.same(chunk.buffer(), valid.buffer);
+    t.end();
+  });
+  t.end();
+});
