@@ -39,6 +39,15 @@ var valid = {
       0x05, 0x19, 0x16, 0xcb
     ])
   }],
+  IDAT: [{
+    file: '?idat-test',
+    data: Buffer(0),
+    buffer: Buffer([
+      0x00, 0x00, 0x00, 0x00,
+      0x49, 0x44, 0x41, 0x54,
+      0x35, 0xaf, 0x06, 0x1e
+    ])
+  }],
   PLTE: [{
     file: 'valid-palette',
     colours: [

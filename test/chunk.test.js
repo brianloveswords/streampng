@@ -97,6 +97,7 @@ chunktest('sCAL', ['unitSpecifier', 'width', 'height'], false);
 chunktest('gIFg', ['disposalMethod', 'userInput', 'delay'], false);
 chunktest('gIFx', ['appIdentifier', 'authCode', 'appData'], false);
 chunktest('sTER', ['mode'], false);
+chunktest('IDAT', ['data']);
 
 
 function creationtest(type) {
@@ -106,10 +107,11 @@ function creationtest(type) {
     valid = valid[0];
 
     var chunk = new Chunk[type](valid);
-    t.same(chunk.buffer(), valid.buffer, m('buffers'));
+    t.same(chunk.out(), valid.buffer, m('buffers'));
     t.end();
   });
 }
+creationtest('IDAT');
 creationtest('IHDR');
 creationtest('tIME');
 creationtest('PLTE');
