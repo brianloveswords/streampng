@@ -47,10 +47,11 @@ test('tEXt', function (t) {
 
 test('zTXt', function (t) {
   var chunks = pngs.valid.zTXt;
-  t.plan(5 * chunks.length);
+  t.plan(6 * chunks.length);
   chunks.forEach(function (valid) {
     var m = msgr(valid);
     var chunk = new Chunk(valid.buffer, valid);
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
     t.same(chunk.keyword, valid.keyword, m('keyword'));
     t.same(chunk.compressionMethod, valid.compressionMethod, m('compression method'));
     t.same(chunk.compressedText, valid.compressedText, m('compressed text'));
