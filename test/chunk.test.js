@@ -280,8 +280,21 @@ test('oFFs', function (t) {
   chunks.forEach(function (valid) {
     var m = msgr(valid);
     var chunk = new Chunk(valid.buffer, valid);
-    t.same(chunk.crcCalculated(), chunk.crc, m('crc'))
+    t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
     t.ok(chunk.position.equals(valid.position), m('position'));
+  });
+  t.end();
+});
+
+test('pCAL', function (t) {
+  var chunks = pngs.valid.pCAL;
+  chunks.forEach(function (valid) {
+    var m = msgr(valid);
+    var chunk = new Chunk(valid.buffer, valid);
+    t.same(chunk.originalZero, valid.originalZero, m('original zero'));
+    t.same(chunk.originalMaximum, valid.originalMaximum, m('original maximum'));
+    t.same(chunk.equationType, valid.equationType, m('equation type'));
+    t.same(chunk.parameters, valid.parameters, m('parameters'));
   });
   t.end();
 });
