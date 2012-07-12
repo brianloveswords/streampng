@@ -1,7 +1,7 @@
 var Stream = require('stream').Stream;
 var util = require('util');
 var bufferEqual = require('buffer-equal');
-var Parser = require('./lib/parser.js');
+var BitReader = require('./lib/bitreader.js');
 var Chunk = require('./lib/chunk.js');
 
 /**
@@ -12,7 +12,7 @@ var Chunk = require('./lib/chunk.js');
  */
 
 function Png(input) {
-  this.parser = new Parser();
+  this.parser = new BitReader();
   this.expecting = 'signature';
   this.strict = true;
   this.writable = true;
