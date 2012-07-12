@@ -311,6 +311,17 @@ test('sCAL', function (t) {
   t.end();
 });
 
+test('gIFg', function (t) {
+  var chunks = pngs.valid.gIFg;
+  chunks.forEach(function (valid) {
+    var m = msgr(valid);
+    var chunk = new Chunk(valid.buffer, valid);
+    t.same(chunk.disposalMethod, valid.disposalMethod, m('disposal method'));
+    t.same(chunk.userInput, valid.userInput, m('user input'));
+    t.same(chunk.delay, valid.delay, m('delay'));
+  });
+  t.end();
+});
 // test('creating chunks from thin air', function (t) {
 //   t.test('tIME', function (t) {
 //     // var chunk = new Chunk.tIME({
