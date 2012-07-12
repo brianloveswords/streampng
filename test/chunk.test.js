@@ -118,3 +118,4 @@ creationtest('IEND');
 creationtest('tIME');
 creationtest('PLTE');
 creationtest('tEXt');
+creationtest('zTXt');
