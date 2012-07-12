@@ -121,3 +121,4 @@ creationtest('tEXt');
 creationtest('zTXt');
 creationtest('iTXt');
 creationtest('cHRM');
+creationtest('gAMA');
