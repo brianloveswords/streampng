@@ -107,8 +107,10 @@ function creationtest(type) {
     valid = valid[0];
 
     var chunk = new Chunk[type](valid);
-    t.same(chunk.out(), valid.buffer, m('buffers'));
-    t.end();
+    chunk.out(function (buf) {
+      t.same(buf, valid.buffer, m('buffers'));
+      t.end();
+    })
   });
 }
 creationtest('IDAT');
