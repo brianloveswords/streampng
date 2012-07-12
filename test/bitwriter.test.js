@@ -134,3 +134,24 @@ test('using with Buffer.concat', function (t) {
   t.same(newbuf, Buffer([0x79, 0x6f, 0x75, 0x20, 0x6c, 0x6f, 0x6f, 0x6b, 0x20, 0x6e, 0x69, 0x63, 0x65, 0x20, 0x74, 0x6f, 0x64, 0x61, 0x79, 0x00]));
   t.end();
 });
+
+test('Buffer#slice', function (t) {
+  var str = 'you look nice today';
+  var buf = BitWriter(str.length);
+  buf.write(str);
+  t.same(buf.slice(0, 3), Buffer('you'));
+  t.end();
+});
+
+test('instance of buffer', function (t) {
+  var buf = BitWriter(0);
+  t.ok(buf instanceof Buffer);
+  t.end();
+});
+
+test('array access', function (t) {
+  var buf = BitWriter(1);
+  buf.write(0x10);
+  t.same(buf[0], 0x10);
+  t.end();
+});
