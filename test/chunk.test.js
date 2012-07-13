@@ -132,3 +132,4 @@ creationtest('bKGD');
 creationtest('pHYs');
 creationtest('sRGB');
 creationtest('sBIT');
+creationtest('hIST');
