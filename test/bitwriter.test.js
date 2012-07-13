@@ -187,3 +187,10 @@ test('attaching to object', function (t) {
   t.same(buf.out(), Buffer('lol'));
   t.end();
 });
+
+test('inspecting', function (t) {
+  var buf = BitWriter(4);
+  t.same(buf.inspect(), '<BitWriter 00 00 00 00>');
+  t.end();
+});
+
