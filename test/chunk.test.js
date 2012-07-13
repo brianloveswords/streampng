@@ -137,3 +137,4 @@ creationtest('hIST');
 creationtest('oFFs');
 creationtest('pCAL');
 creationtest('sCAL');
+creationtest('gIFg');
