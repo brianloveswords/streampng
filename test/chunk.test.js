@@ -133,3 +133,5 @@ creationtest('pHYs');
 creationtest('sRGB');
 creationtest('sBIT');
 creationtest('hIST');
+// creationtest('sPLT');
+creationtest('oFFs');
