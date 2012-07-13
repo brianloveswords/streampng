@@ -177,3 +177,13 @@ test('writing foreign text', function (t) {
   t.same(buf.out(), Buffer([0xe0, 0xa4, 0xb6, 0xe0, 0xa5, 0x80, 0xe0, 0xa4, 0xb0, 0xe0, 0xa5, 0x8d, 0xe0, 0xa4, 0xb7, 0xe0, 0xa4, 0x95]));
   t.end();
 });
+
+test('attaching to object', function (t) {
+  var buf = BitWriter(3);
+  var obj = { playItAgain: 'sam' }
+  buf.attach(obj);
+  obj.write('lol');
+  t.same(obj.playItAgain, 'sam');
+  t.same(buf.out(), Buffer('lol'));
+  t.end();
+});
