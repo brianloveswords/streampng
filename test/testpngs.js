@@ -380,7 +380,7 @@ var valid = {
     languageTag: 'ja',
     // this will also work if your editor doesn't support unicode:
     // translatedKeyword: Buffer([0xE3, 0x82, 0xBF, 0xE3, 0x82, 0xA4, 0xE3, 0x82, 0xA4, 0xE3, 0x83, 0x88, 0xE3, 0x83, 0xAB]).toString('utf-8')
-    translatedKeyword: 'タイイトル',
+    translatedKeyword: 'タイトル',
     text: 'PngSuite\u0000',
     buffer: Buffer([
       0x00, 0x00, 0x00, 0x21,

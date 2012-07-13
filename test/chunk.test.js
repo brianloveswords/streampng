@@ -101,15 +101,19 @@ chunktest('IEND', []);
 
 function creationtest(type) {
   test('creating ' + type, function (t) {
-    var valid = pngs.valid[type];
-    if (!valid) throw new Error('could not find valid chunk by name: ' + type);
-    valid = valid[0];
+    var chunks = pngs.valid[type];
+    if (!chunks) throw new Error('could not find valid chunk by name: ' + type);
 
-    var chunk = new Chunk[type](valid);
-    chunk.out(function (buf) {
-      t.same(buf, valid.buffer, m('buffers'));
-      t.end();
-    })
+    chunks.forEach(function (valid) {
+      t.test('create', function (t) {
+        var m = msgr(valid);
+        var chunk = new Chunk[type](valid);
+        chunk.out(function (buf) {
+          t.same(buf, valid.buffer, m('buffers'));
+          t.end();
+        });
+      })
+    });
   });
 }
 creationtest('IDAT');
@@ -122,3 +126,4 @@ creationtest('zTXt');
 creationtest('iTXt');
 creationtest('cHRM');
 creationtest('gAMA');
+creationtest('tRNS');
