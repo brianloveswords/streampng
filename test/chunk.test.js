@@ -28,7 +28,7 @@ function chunktest(type, fields, crc, additional) {
       });
 
       if (crc)
-        t.same(chunk.crcCalculated(), chunk.crc, m('crc'));
+        t.same(chunk.getComputedCrc(), chunk.crc, m('crc'));
 
       if (additional)
         t.test(type + ' additional tests', function (t) { additional(t, m, chunk, valid); });
