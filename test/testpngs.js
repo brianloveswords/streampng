@@ -14,7 +14,7 @@ var iccpBuffer = Buffer.concat([
   Buffer("iCCP"),
   Buffer(iccpName + '\u0000\u0000'),
   iccpCompressedProfile,
-  Buffer([0x44, 0x11, 0x62, 0x1a])
+  Buffer([0xe3, 0xeb, 0x43, 0x26]) // different from file, apple calcs crc wrong.
 ]);
 var valid = {
   IHDR: [{
@@ -148,7 +148,7 @@ var valid = {
   tRNS: [{
     file: 'tbbn0g04',
     colourType: 0,
-    grey: 0x000f,
+    greyscale: 0x000f,
     buffer: Buffer([
       0x00, 0x00, 0x00, 0x02,
       0x74, 0x52, 0x4e, 0x53,

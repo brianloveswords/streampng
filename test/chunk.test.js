@@ -74,7 +74,7 @@ chunktest('PLTE', ['colours']);
 chunktest('cHRM', ['whitePoint', 'red', 'green', 'blue']);
 chunktest('gAMA', ['gamma']);
 chunktest('tRNS', ['grey', 'red', 'blue', 'palette'])
-chunktest('iCCP', ['profileName', 'compressionMethod', 'compressedProfile'], false, function (t, m, chunk, valid) {
+chunktest('iCCP', ['profileName', 'compressionMethod', 'compressedProfile'], function (t, m, chunk, valid) {
   chunk.inflate(function (err, data) {
     t.ok(data, 'should be able to inflate profile');
     t.end();
@@ -127,3 +127,5 @@ creationtest('iTXt');
 creationtest('cHRM');
 creationtest('gAMA');
 creationtest('tRNS');
+creationtest('iCCP');
+creationtest('bKGD');
