@@ -129,3 +129,4 @@ creationtest('gAMA');
 creationtest('tRNS');
 creationtest('iCCP');
 creationtest('bKGD');
+creationtest('pHYs');
