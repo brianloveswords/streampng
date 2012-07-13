@@ -91,7 +91,7 @@ chunktest('sPLT', ['paletteName', 'sampleDepth'], function (t, m, chunk, valid) 
 });
 chunktest('tIME', ['year', 'month', 'day', 'minute', 'second', 'date']);
 chunktest('oFFs', ['position', 'unitSpecifier'], false)
-chunktest('pCAL', ['originalZero, originalMaximum', 'equationType', 'parameters'], false);
+chunktest('pCAL', ['name', 'originalZero, originalMaximum', 'equationType', 'parameters'], false);
 chunktest('sCAL', ['unitSpecifier', 'width', 'height'], false);
 chunktest('gIFg', ['disposalMethod', 'userInput', 'delay'], false);
 chunktest('gIFx', ['appIdentifier', 'authCode', 'appData'], false);
@@ -135,3 +135,4 @@ creationtest('sBIT');
 creationtest('hIST');
 // creationtest('sPLT');
 creationtest('oFFs');
+creationtest('pCAL');
