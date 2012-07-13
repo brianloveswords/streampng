@@ -136,3 +136,4 @@ creationtest('hIST');
 // creationtest('sPLT');
 creationtest('oFFs');
 creationtest('pCAL');
+creationtest('sCAL');
