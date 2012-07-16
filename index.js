@@ -1,7 +1,7 @@
 var Stream = require('stream').Stream;
 var util = require('util');
 var bufferEqual = require('buffer-equal');
-var BitReader = require('./lib/bitreader.js');
+var BitReader = require('bitreader');
 var Chunk = require('./lib/chunk.js');
 
 /**
