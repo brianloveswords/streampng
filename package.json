@@ -14,7 +14,10 @@
   },
   "dependencies": {
     "buffer-crc32": "~0.1.1",
-    "buffer-equal": "~0.0.0"
+    "buffer-equal": "~0.0.0",
+    "errs": "git://github.com/brianloveswords/errs.git#d1756bbf93706ab6a56334e59f7b3e39b31730bb",
+    "bitwriter": "0.0.2",
+    "bitreader": "0.0.1"
   },
   "devDependencies": {
     "tap": "~0.2.5"

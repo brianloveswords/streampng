@@ -138,3 +138,4 @@ creationtest('oFFs');
 creationtest('pCAL');
 creationtest('sCAL');
 creationtest('gIFg');
+creationtest('gIFx');
