@@ -158,11 +158,33 @@ StreamPng.prototype._chunk = function chunk() {
   this.process();
 };
 
+/**
+ * Queues a new chunk for injection into the stream with an optional
+ * condition for inclusion.
+ *
+ * If the input stream is finished parsing, processes the chunk immediately.
+ *
+ * The condition will be called once for every chunk that exists with the
+ * parameter `existinChunk`. It should return either `true` or `false`.
+ * If any `condition(existingChunk)` call returns `false`, injection
+ * will not occur.
+ *
+ * @param {Chunk} chunk
+ * @param {Function} condition `function(existingChunk) {...}`
+ * @see `StreamPng#processInjections`
+ */
+
 StreamPng.prototype.inject = function inject(chunk, condition) {
   if (!condition) condition = true;
   this.injections.push({ chunk: chunk, condition: condition });
   if (this.finished) this.processInjections();
+  return this;
 };
+
+
+/**
+ * Process the queued injections.
+ */
 
 StreamPng.prototype.processInjections = function () {
   if (!this.injections.length) return;
