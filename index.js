@@ -17,6 +17,7 @@ function StreamPng(input) {
   this.strict = true;
   this.writable = true;
   this.chunks = [];
+  this.finished = !(input);
 
   // Input can be either a buffer or a stream. When we get a buffer, we can
   // pretend it's a stream by writing the entire buffer at once, as if we just
@@ -123,8 +124,10 @@ StreamPng.prototype._chunk = function chunk() {
     this.delayEmit('imagedata start');
   }
 
-  else if (chunk.type === 'IEND')
+  else if (chunk.type === 'IEND') {
+    this.finished = true;
     this.delayEmit('end', this.chunks);
+  }
 
   this.process();
 };
@@ -161,6 +164,14 @@ StreamPng.prototype.out = function out(callback) {
   var hits = 0;
   var buffers = [];
   var signature = StreamPng.SIGNATURE;
+
+  // We don't want to force the user to manually listen for the end
+  // event before calling `out`. If we know it's not done parsing yet,
+  // bind the callback to this function and setup a listener for them.
+  if (!this.finished) {
+    var boundFn = this.out.bind(this, callback);
+    return this.once('end', boundFn);
+  }
 
   // Loop over all of the chunks in order and get their buffers. Whenever
   // their callback returns, stick them in an array, indexed by their

@@ -105,3 +105,11 @@ test('writing out', function (t) {
     });
   });
 });
+
+test('writing out, not waiting for end event', function (t) {
+  var png = new StreamPng(newStream());
+  png.out(function (output) {
+    t.same(output, buffer);
+    t.end();
+  });
+});
