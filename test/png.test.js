@@ -97,7 +97,7 @@ test('reading chunks', function (t) {
 });
 
 test('writing out', function (t) {
-  var png = new StreamPng(newStream());
+  var png = StreamPng(newStream());
   png.on('end', function () {
     png.out(function (output) {
       t.same(output, buffer);
@@ -107,9 +107,40 @@ test('writing out', function (t) {
 });
 
 test('writing out, not waiting for end event', function (t) {
-  var png = new StreamPng(newStream());
+  var png = StreamPng(newStream());
   png.out(function (output) {
     t.same(output, buffer);
     t.end();
   });
 });
+
+test('writing out with modified chunks', function (t) {
+  var png = StreamPng(newStream());
+  png.on('tEXt', function (chunk) {
+    chunk.set('keyword', 'Lolware');
+  });
+
+  png.out(function (output) {
+    var modpng = StreamPng(output);
+    modpng.on('tEXt', function (chunk) {
+      t.same(chunk.keyword, 'Lolware');
+      t.end();
+    });
+  });
+});
+
+test('writing out, stream style', function (t) {
+  var png = StreamPng(newStream());
+  var outfile = 'sample.png';
+  var instream = fs.createWriteStream(outfile);
+  var outstream = png.out();
+  outstream.pipe(instream).on('close', function () {
+    var png = StreamPng(fs.readFileSync(outfile));
+    png.out(function (buf) {
+      t.same(buf, buffer);
+      t.end();
+    });
+  });
+});
+
+

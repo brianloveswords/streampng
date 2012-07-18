@@ -12,6 +12,9 @@ var Chunk = require('./lib/chunk.js');
  */
 
 function StreamPng(input) {
+  if (!(this instanceof StreamPng))
+    return new StreamPng(input);
+
   this.parser = new BitReader();
   this.expecting = 'signature';
   this.strict = true;
@@ -158,7 +161,34 @@ StreamPng.prototype.write = function write(data) {
   this.process();
 };
 
-StreamPng.prototype.out = function out(callback) {
+/**
+ * Output the buffer for the PNG. Works either callback or stream style.
+ *
+ * Callback example:
+ * ```
+ * png.out(function (buf) {
+ *   fs.writeFile('example.png', buf, function() {
+ *     console.log('done');
+ *    });
+ * });
+ *
+ * Stream example:
+ * ```
+ * var infile = fs.createWriteStream('example.png');
+ * png.out().pipe(infile).once('close', function() {
+ *   console.log('done');
+ * });
+ * ```
+ *
+ * @param {Function} callback `function(buffer) { ... }`
+ * @param {Stream} _stream internal, should not use.
+ * @return {Stream} a `Readable Stream` ready to be piped somewhere
+ */
+
+StreamPng.prototype.out = function out(callback, _stream) {
+  var stream = _stream || new Stream();
+  stream.readable = true;
+
   var chunks = this.chunks;
   var expect = chunks.length;
   var hits = 0;
@@ -167,10 +197,12 @@ StreamPng.prototype.out = function out(callback) {
 
   // We don't want to force the user to manually listen for the end
   // event before calling `out`. If we know it's not done parsing yet,
-  // bind the callback to this function and setup a listener for them.
+  // bind the callback  and the output stream to this function and setup
+  // a listener for them.
   if (!this.finished) {
-    var boundFn = this.out.bind(this, callback);
-    return this.once('end', boundFn);
+    var boundFn = this.out.bind(this, callback, stream);
+    this.once('end', boundFn);
+    return stream;
   }
 
   // Loop over all of the chunks in order and get their buffers. Whenever
@@ -181,14 +213,25 @@ StreamPng.prototype.out = function out(callback) {
   function proceed(buffer, idx) {
     buffers[idx] = buffer;
     if (++hits !== expect) return;
+
+    var output;
     buffers.unshift(signature);
-    callback(Buffer.concat(buffers));
+    output = Buffer.concat(buffers)
+
+    if (callback) callback(output);
+    process.nextTick(function () {
+      stream.emit('data', output);
+      stream.emit('end', output);
+      stream.readable = false;
+    });
   }
 
   chunks.forEach(function (chunk, idx) {
     if (chunk._buffer) return proceed(chunk._buffer, idx);
     chunk.out(function (buf) { proceed(buf, idx) });
   });
+
+  return stream;
 };
 
 StreamPng.prototype.end = StreamPng.prototype.write;
