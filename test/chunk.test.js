@@ -40,7 +40,6 @@ function chunktest(type, fields, crc, additional) {
 test('basic chunk parsing', function (t) {
   var c = new Chunk(testChunk);
   t.same(c.type, 'IEND', m('type'));
-  t.same(c.length , 0, m('length'));
   t.same(c._rawData, Buffer(0), m('_rawData'));
   t.same(c.crc, crc32('IEND'), m('crc32'));
   t.end();

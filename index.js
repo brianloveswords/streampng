@@ -186,6 +186,7 @@ StreamPng.prototype.out = function out(callback) {
   }
 
   chunks.forEach(function (chunk, idx) {
+    if (chunk._buffer) return proceed(chunk._buffer, idx);
     chunk.out(function (buf) { proceed(buf, idx) });
   });
 };
