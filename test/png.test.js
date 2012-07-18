@@ -3,7 +3,7 @@ var test = require('tap').test;
 var StreamPng = require('..');
 
 var FILENAME = __dirname + '/pngs/tEXt-iTXt.png';
-var buffer = fs.readFileSync(FILENAME);
+var SAMPLE_BUFFER = fs.readFileSync(FILENAME);
 function newStream(opts) {
   opts = opts || {}
   return fs.createReadStream(FILENAME, opts);
@@ -56,7 +56,7 @@ test('reading the png signature', {skip: false}, function (t) {
 
   t.test('signature with buffer', function (t) {
     t.plan(1);
-    var png = new StreamPng(buffer);
+    var png = new StreamPng(SAMPLE_BUFFER);
     png.once('signature', t.pass.bind(t, 'should emit signature event'));
     png.once('error', function () { t.fail('should not emit error'); });
   });
@@ -67,7 +67,7 @@ test('reading the png signature', {skip: false}, function (t) {
 test('reading chunks', function (t) {
   t.test('with a buffer', function (t) {
     t.plan(1);
-    var png = new StreamPng(buffer);
+    var png = new StreamPng(SAMPLE_BUFFER);
     png.once('IEND', t.pass.bind(t, 'found the last chunk'));
     png.once('error', function () { t.fail('should not emit error'); });
   });
@@ -100,7 +100,7 @@ test('writing out', function (t) {
   var png = StreamPng(newStream());
   png.on('end', function () {
     png.out(function (output) {
-      t.same(output, buffer);
+      t.same(output, SAMPLE_BUFFER);
       t.end();
     });
   });
@@ -109,7 +109,7 @@ test('writing out', function (t) {
 test('writing out, not waiting for end event', function (t) {
   var png = StreamPng(newStream());
   png.out(function (output) {
-    t.same(output, buffer);
+    t.same(output, SAMPLE_BUFFER);
     t.end();
   });
 });
@@ -137,10 +137,36 @@ test('writing out, stream style', function (t) {
   outstream.pipe(instream).on('close', function () {
     var png = StreamPng(fs.readFileSync(outfile));
     png.out(function (buf) {
-      t.same(buf, buffer);
+      t.same(buf, SAMPLE_BUFFER);
       t.end();
     });
   });
 });
 
+test('streaming out concurrently with transparent stream', function (t) {
+  t.plan(2);
+  var fdirect = 'sample.unmodified.png';
+  var fmodified = 'sample.png';
+  var png = StreamPng(newStream());
+  var direct = fs.createWriteStream(fdirect);
+  var modded = fs.createWriteStream(fmodified);
+  var keyword = 'lolcathost';
 
+  png.pipe(direct);
+  png.out().pipe(modded);
+  png.on('tEXt', function (chunk) { chunk.set('keyword', keyword) });
+
+  direct.on('close', function () {
+    var png = StreamPng(fs.readFileSync(fdirect));
+    png.out(function (buf) {
+      t.same(buf, SAMPLE_BUFFER);
+    });
+  });
+
+  modded.on('close', function () {
+    var png = StreamPng(fs.readFileSync(fmodified));
+    png.on('tEXt', function (chunk) {
+      t.same(chunk.keyword, keyword);
+    });
+  });
+});

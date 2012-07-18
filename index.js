@@ -19,6 +19,7 @@ function StreamPng(input) {
   this.expecting = 'signature';
   this.strict = true;
   this.writable = true;
+  this.readable = true;
   this.chunks = [];
   this.finished = !(input);
 
@@ -154,11 +155,22 @@ StreamPng.prototype.process = function process() {
     return this._chunk();
 };
 
+/**
+ * Handle data input. Re-emits incoming data as a `data` event to allow
+ * for transparent piping to another Writable Stream.
+ *
+ * @param {Buffer} data
+ * @emits {'data', Buffer} same as incoming data
+ * @returns this
+ */
+
 StreamPng.prototype.write = function write(data) {
-  if (!data) return;
+  if (!data) return this;
   var parser = this.parser;
   parser.write(data);
+  this.emit('data', data);
   this.process();
+  return this;
 };
 
 /**
