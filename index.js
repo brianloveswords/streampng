@@ -23,6 +23,7 @@ function StreamPng(input) {
   this.chunks = [];
   this.injections = []
   this.finished = !(input);
+
   // Input can be either a buffer or a stream. When we get a buffer, we can
   // pretend it's a stream by writing the entire buffer at once, as if we just
   // got a single `data` event. If it's not a buffer, check whether input
@@ -57,8 +58,6 @@ StreamPng.prototype.delayEmit = function delayEmit() {
 };
 
 StreamPng.prototype.addChunk = function (chunk) {
-  // #TODO: chunks should know whether they are multi or singular and
-  // should be stored as an array or singularly accordingly.
   this.chunks.push(chunk);
   if (this[chunk.type]) {
     this[chunk.type].push(chunk);
@@ -89,9 +88,9 @@ StreamPng.prototype._signature = function signature() {
 
   var possibleSignature = parser.eat(validSignature.length)
 
-  // #TODO: if this is true, stop the stream, clean things up
   if (!bufferEqual(possibleSignature, validSignature)) {
-    this.delayEmit('error', new Error('Not a PNG, whaddya doin?'));
+    this.delayEmit('error', new Error('Signature mismatch, not a PNG'));
+    this.writable = false;
     return this;
   }
 
