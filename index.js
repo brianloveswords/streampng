@@ -11,7 +11,7 @@ var Chunk = require('./lib/chunk.js');
  * @return instance
  */
 
-function Png(input) {
+function StreamPng(input) {
   this.parser = new BitReader();
   this.expecting = 'signature';
   this.strict = true;
@@ -35,7 +35,7 @@ function Png(input) {
     }
   }
 }
-util.inherits(Png, Stream);
+util.inherits(StreamPng, Stream);
 
 /**
  * Emit on the nextTick to allow for late-bound listeners.
@@ -43,7 +43,7 @@ util.inherits(Png, Stream);
  * @see EventEmitter#emit
  */
 
-Png.prototype.delayEmit = function delayEmit() {
+StreamPng.prototype.delayEmit = function delayEmit() {
   var args = arguments;
   process.nextTick(function () {
     this.emit.apply(this, args);
@@ -57,9 +57,9 @@ Png.prototype.delayEmit = function delayEmit() {
  * is not valid.
  */
 
-Png.prototype._signature = function signature() {
+StreamPng.prototype._signature = function signature() {
   var parser = this.parser;
-  var validSignature = Png.SIGNATURE;
+  var validSignature = StreamPng.SIGNATURE;
 
   if (parser.getBuffer().length < validSignature.length)
     return this;
@@ -68,7 +68,7 @@ Png.prototype._signature = function signature() {
 
   // #TODO: if this is true, stop the stream, clean things up
   if (!bufferEqual(possibleSignature, validSignature)) {
-    this.delayEmit('error', new Error('Not a fuckin Png, whaddya doin?'));
+    this.delayEmit('error', new Error('Not a PNG, whaddya doin?'));
     return this;
   }
 
@@ -79,7 +79,7 @@ Png.prototype._signature = function signature() {
   this.process();
 };
 
-Png.prototype._chunk = function chunk() {
+StreamPng.prototype._chunk = function chunk() {
   var parser = this.parser;
 
   if (parser.position() < 8) {
@@ -88,18 +88,23 @@ Png.prototype._chunk = function chunk() {
     return this;
   }
 
-  // We need to make sure there are enough bytes in the buffer to read the
-  // entire chunk. If there are less than four bytes, we can't even read the
-  // length of the chunk, so we'll return and wait for the next `write`.
-  var remaining = parser.remaining()
-  if (!remaining || remaining < 4) return this;
+  // We need to make sure there are enough bytes in the buffer to read
+  // the entire chunk. If there are less than four bytes, we can't even
+  // read the length of the chunk, so we'll return and wait for the next
+  // `write`.
+  var remaining = parser.remaining();
+  if (!remaining || remaining < 4)
+    return this;
 
-  // If we can read the length but there aren't enough bytes to read through
-  // the end of the chunk, wait for the next `write`.
+  // If we can read the length but there aren't enough bytes to read
+  // through the end of the chunk, wait for the next `write`.
   var dataLength = parser.peak(4).readUInt32BE(0);
-  dataLength += Png.TYPE_LENGTH + Png.CRC_LENGTH;
-  if (remaining < dataLength) return this;
+  dataLength += StreamPng.TYPE_LENGTH + StreamPng.CRC_LENGTH;
+  if (remaining < dataLength)
+    return this;
 
+  // until we can think of something better to do, just pass errors
+  // straight through.
   try {
     var chunk = new Chunk(parser, this.IHDR);
   } catch (err) {
@@ -107,11 +112,16 @@ Png.prototype._chunk = function chunk() {
     return this;
   }
 
+  // #TODO: We should give an option for reading `transparently`, to
+  // save memory, meaning that we don't store the chunks and only emit
+  // them. Useful if the user doesn't care about re-writing the PNG.
   this.storeChunk(chunk);
   this.delayEmit(chunk.type, chunk);
 
-  if (chunk.type === 'IDAT')
+  if (chunk.type === 'IDAT' && !this.IDAT) {
     this.delayEmit('metadata end');
+    this.delayEmit('imagedata start');
+  }
 
   else if (chunk.type === 'IEND')
     this.delayEmit('end', this.chunks);
@@ -119,7 +129,7 @@ Png.prototype._chunk = function chunk() {
   this.process();
 };
 
-Png.prototype.storeChunk = function (chunk) {
+StreamPng.prototype.storeChunk = function (chunk) {
   // #TODO: chunks should know whether they are multi or singular and
   // should be stored as an array or singularly accordingly.
   this.chunks.push(chunk);
@@ -131,52 +141,50 @@ Png.prototype.storeChunk = function (chunk) {
   }
 };
 
-Png.prototype.process = function process() {
+StreamPng.prototype.process = function process() {
   if (this.expecting === 'signature')
     return this._signature();
   if (this.expecting === 'chunk')
     return this._chunk();
 };
 
-Png.prototype.write = function write(data) {
+StreamPng.prototype.write = function write(data) {
   if (!data) return;
   var parser = this.parser;
   parser.write(data);
   this.process();
 };
-Png.prototype.end = Png.prototype.write;
-Png.prototype.destroy = function noop() {};
 
-Png.SIGNATURE = Buffer([137, 80, 78, 71, 13, 10, 26, 10]);
-Png.TYPE_LENGTH = 4;
-Png.CRC_LENGTH = 4;
+StreamPng.prototype.out = function out(callback) {
+  var chunks = this.chunks;
+  var expect = chunks.length;
+  var hits = 0;
+  var buffers = [];
+  var signature = StreamPng.SIGNATURE;
 
-module.exports = Png;
+  // Loop over all of the chunks in order and get their buffers. Whenever
+  // their callback returns, stick them in an array, indexed by their
+  // original order. We expect `chunks.length` hits and once that
+  // expectation has been met, we push the PNG signature to the beginning
+  // of the array, `Buffer.concat` the whole thing and send it off.
+  function proceed(buffer, idx) {
+    buffers[idx] = buffer;
+    if (++hits !== expect) return;
+    buffers.unshift(signature);
+    callback(Buffer.concat(buffers));
+  }
 
-// png.on('IHDR', function () {}); // 1, must appear first
-// png.on('tIME', function () {}); // ?
-// png.on('zTXt', function () {}); // *
-// png.on('tEXt', function () {}); // *
-// png.on('iTXt', function () {}); // *
-// png.on('pHYs', function () {}); // ?
-// png.on('sPLT', function () {}); // *
-// png.on('iCCP', function () {}); // ? (mutually exclusive with sRGB)
-// png.on('sRGB', function () {}); // ? (mutually exclusive with iCCP)
-// png.on('sBIT', function () {}); // ?
-// png.on('gAMA', function () {}); // ?
-// png.on('cHRM', function () {}); // ?
-// png.on('dSIG', function () {}); // 0 or 2
-// png.on('oFFs', function () {}); // ?
-// png.on('pCAL', function () {}); // ?
-// png.on('sCAL', function () {}); // ?
-// png.on('gIFg', function () {}); // *
-// png.on('gIFx', function () {}); // *
-// png.on('sTER', function () {}); // ?
+  chunks.forEach(function (chunk, idx) {
+    chunk.out(function (buf) { proceed(buf, idx) });
+  });
+};
 
-// png.on('PLTE', function () {}); // 1 or 0
-// png.on('tRNS', function () {}); // ?, if PLTE exists, must appear after
-// png.on('hIST', function () {}); // ?, can only appear with PLTE
-// png.on('bKGD', function () {}); // ?, if PLTE exists, must appear after
+StreamPng.prototype.end = StreamPng.prototype.write;
+StreamPng.prototype.destroy = function noop() {};
 
-// png.on('IDAT', function () {}); // +, must appear after all the shit above.
-// png.on('IEND', function () {}); // 1, must be the last thing.
+StreamPng.SIGNATURE = Buffer([137, 80, 78, 71, 13, 10, 26, 10]);
+StreamPng.TYPE_LENGTH = 4;
+StreamPng.CRC_LENGTH = 4;
+
+module.exports = StreamPng;
+
