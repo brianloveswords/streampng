@@ -170,3 +170,72 @@ test('streaming out concurrently with transparent stream', function (t) {
     });
   });
 });
+
+test('injecting a new chunk', function (t) {
+  var png = StreamPng(newStream());
+  var text = JSON.stringify({
+    url: 'http://localhost:8080/assertion.json'
+  });
+  var itxt = StreamPng.Chunk.iTXt({
+    keyword: 'openbadges',
+    compressed: true,
+    compressionMethod: 0,
+    languageTag: 'json',
+    translatedKeyword: '',
+    text: text
+  });
+
+  png.inject(itxt);
+
+  png.out(function (buffer) {
+    t.plan(2);
+    var modpng = StreamPng(buffer);
+    modpng.on('iTXt', function (chunk) {
+      if (chunk.keyword !== 'openbadges') return;
+      t.same(chunk.languageTag, 'json');
+      chunk.inflate(function (err, inflated) {
+        t.same(inflated, text);
+      });
+    });
+  });
+});
+
+test('conditional chunk injection', function (t) {
+  var png = StreamPng(newStream());
+  var keyword = 'Software';
+  var newChunk = StreamPng.Chunk.tEXt({
+    keyword: keyword,
+    text: 'should not be entered'
+  });
+  var expect = ['IHDR', 'tEXt', 'iTXt', 'IDAT', 'IEND'];
+
+  png.inject(newChunk, function (existing) {
+    if (existing.type === 'tEXt' &&
+        existing.keyword === 'Software')
+      return false;
+    return true;
+  });
+
+  png.on('end', function () {
+    var types = png.chunks.map(function (c) { return c.type });
+    t.same(types, expect);
+    t.end();
+  });
+});
+
+test('injecting after the stream is finished', function (t) {
+  var png = StreamPng(newStream());
+  var keyword = 'Other';
+  var newChunk = StreamPng.Chunk.tEXt({
+    keyword: keyword,
+    text: 'text chunk'
+  });
+  var expect = ['IHDR', 'tEXt', 'tEXt', 'iTXt', 'IDAT', 'IEND'];
+
+  png.on('end', function () {
+    png.inject(newChunk);
+    var types = png.chunks.map(function (c) { return c.type });
+    t.same(types, expect);
+    t.end();
+  });
+});

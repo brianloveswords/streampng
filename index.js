@@ -21,8 +21,8 @@ function StreamPng(input) {
   this.writable = true;
   this.readable = true;
   this.chunks = [];
+  this.injections = []
   this.finished = !(input);
-
   // Input can be either a buffer or a stream. When we get a buffer, we can
   // pretend it's a stream by writing the entire buffer at once, as if we just
   // got a single `data` event. If it's not a buffer, check whether input
@@ -54,6 +54,24 @@ StreamPng.prototype.delayEmit = function delayEmit() {
     this.emit.apply(this, args);
   }.bind(this));
   return this;
+};
+
+StreamPng.prototype.addChunk = function (chunk) {
+  // #TODO: chunks should know whether they are multi or singular and
+  // should be stored as an array or singularly accordingly.
+  this.chunks.push(chunk);
+  if (this[chunk.type]) {
+    this[chunk.type].push(chunk);
+  } else {
+    this[chunk.type] = [chunk];
+  }
+};
+
+StreamPng.prototype.process = function process() {
+  if (this.expecting === 'signature')
+    return this._signature();
+  if (this.expecting === 'chunk')
+    return this._chunk();
 };
 
 /**
@@ -108,7 +126,7 @@ StreamPng.prototype._chunk = function chunk() {
   if (remaining < dataLength)
     return this;
 
-  // until we can think of something better to do, just pass errors
+  // Until we can think of something better to do, just pass errors
   // straight through.
   try {
     var chunk = new Chunk(parser, this.IHDR);
@@ -117,18 +135,22 @@ StreamPng.prototype._chunk = function chunk() {
     return this;
   }
 
-  // #TODO: We should give an option for reading `transparently`, to
-  // save memory, meaning that we don't store the chunks and only emit
-  // them. Useful if the user doesn't care about re-writing the PNG.
-  this.storeChunk(chunk);
-  this.delayEmit(chunk.type, chunk);
-
+  // When we detect the first image data chunk, process the chunk injection
+  // list before adding the image data chunk to the internal list. Also emit
+  // convenience events so the user knows when the metadata section ended.
   if (chunk.type === 'IDAT' && !this.IDAT) {
+    this.processInjections();
     this.delayEmit('metadata end');
     this.delayEmit('imagedata start');
   }
 
-  else if (chunk.type === 'IEND') {
+  // #TODO: Give an option for reading `transparently`, to save memory,
+  // meaning that we don't store the chunks and only emit them. Useful if
+  // the user doesn't care about re-writing the PNG.
+  this.addChunk(chunk);
+  this.delayEmit(chunk.type, chunk);
+
+  if (chunk.type === 'IEND') {
     this.finished = true;
     this.delayEmit('end', this.chunks);
   }
@@ -136,23 +158,32 @@ StreamPng.prototype._chunk = function chunk() {
   this.process();
 };
 
-StreamPng.prototype.storeChunk = function (chunk) {
-  // #TODO: chunks should know whether they are multi or singular and
-  // should be stored as an array or singularly accordingly.
-  this.chunks.push(chunk);
-  if (this[chunk.type]) {
-    this[chunk.type] = [this[chunk.type]]
-    this[chunk.type].push(chunk);
-  } else {
-    this[chunk.type] = chunk;
-  }
+StreamPng.prototype.inject = function inject(chunk, condition) {
+  if (!condition) condition = true;
+  this.injections.push({ chunk: chunk, condition: condition });
+  if (this.finished) this.processInjections();
 };
 
-StreamPng.prototype.process = function process() {
-  if (this.expecting === 'signature')
-    return this._signature();
-  if (this.expecting === 'chunk')
-    return this._chunk();
+StreamPng.prototype.processInjections = function () {
+  if (!this.injections.length) return;
+  var all = this.chunks;
+  var additions = [];
+  var idx;
+
+  this.injections.forEach(function (chunk) {
+    if (chunk.condition === true)
+      return additions.push(chunk.chunk);
+
+    for (idx = 0; idx < all.length; idx++)
+      if (!chunk.condition(all[idx])) return false;
+
+    additions.push(chunk.chunk);
+  });
+  this.injections = [];
+
+  // Splice in the new chunks right after the the IHDR chunk.
+  var splicer = all.splice.bind(all, 1, 0);
+  splicer.apply(null, additions);
 };
 
 /**
@@ -252,6 +283,8 @@ StreamPng.prototype.destroy = function noop() {};
 StreamPng.SIGNATURE = Buffer([137, 80, 78, 71, 13, 10, 26, 10]);
 StreamPng.TYPE_LENGTH = 4;
 StreamPng.CRC_LENGTH = 4;
+
+StreamPng.Chunk = Chunk;
 
 module.exports = StreamPng;
 
