@@ -156,13 +156,13 @@ test('streaming out concurrently with transparent stream', function (t) {
 
   png.on('tEXt', function (chunk) { chunk.set('keyword', keyword) });
 
-  t.plan(1);
-  // direct.on('close', function () {
-  //   var png = StreamPng(fs.readFileSync(fdirect));
-  //   png.out(function (buf) {
-  //     t.same(buf, SAMPLE_BUFFER);
-  //   });
-  // });
+  t.plan(2);
+  direct.on('close', function () {
+    var png = StreamPng(fs.readFileSync(fdirect));
+    png.out(function (buf) {
+      t.same(buf, SAMPLE_BUFFER);
+    });
+  });
 
   modded.on('close', function () {
     var png = StreamPng(fs.readFileSync(fmodified));

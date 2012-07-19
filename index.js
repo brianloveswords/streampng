@@ -48,12 +48,13 @@ function StreamPng(input) {
   }
 }
 util.inherits(StreamPng, Stream);
-
+StreamPng.Chunk = Chunk;
 
 /**
  * Emit on the nextTick to allow for late-bound listeners.
  *
  * @see EventEmitter#emit
+ * @return instance
  */
 
 StreamPng.prototype.delayEmit = function delayEmit() {
@@ -71,7 +72,7 @@ StreamPng.prototype.delayEmit = function delayEmit() {
  *
  * @param {Buffer} data
  * @emits {'data', Buffer} same as incoming data
- * @returns this
+ * @return instance
  */
 
 StreamPng.prototype.write = function write(data) {
@@ -92,8 +93,8 @@ StreamPng.prototype.write = function write(data) {
  * immediately instead of listening for the `end` event.
  *
  * @see StreamPng#write
- * @see StreamPng#out
- * @see StreamPng#inject
+ * @see StreamPng#processInjections
+ * @return instance
  */
 
 StreamPng.prototype.end = function end(data) {
@@ -101,9 +102,15 @@ StreamPng.prototype.end = function end(data) {
   this.writable = false;
   this.finished = true;
   this.delayEmit('end', this.chunks);
+  this.processInjections();
   return this;
 };
 
+/**
+ * Pushes a chunk to main internal list and chunk-specific list.
+ *
+ * @return instance
+ */
 
 StreamPng.prototype.addChunk = function (chunk) {
   this.chunks.push(chunk);
@@ -112,14 +119,8 @@ StreamPng.prototype.addChunk = function (chunk) {
   } else {
     this[chunk.type] = [chunk];
   }
+  return this;
 };
-
-/**
- * Try to read and process some data from the parser buffer.
- *
- * @see StreamPng#_readSignature
- * @see StreamPng#_readChunk
- */
 
 /**
  * Ensure that this is valid png by checking the signature. Emits a
@@ -129,6 +130,7 @@ StreamPng.prototype.addChunk = function (chunk) {
  *
  * @emits {'signature'}
  * @emits {'error', TypeError}
+ * @return instance
  * @see StreamPng#process
  */
 
@@ -137,11 +139,16 @@ StreamPng.prototype._readSignature = function readSignature() {
   var validSignature = StreamPng.SIGNATURE;
   var bufferLength = parser.getBuffer().length;
   var signatureLength = validSignature.length;
+  var possibleSignature;
 
-  if (bufferLength < signatureLength) return this;
+  // Make sure we have enough bytes to read the signature, then get the
+  // signature and compare it to the known valid PNG signature. Emit an
+  // error and set this stream to be non-writable if there's a mismatch,
+  // otherwise emit a `signature` event and continue processing.
+  if (bufferLength < signatureLength)
+    return this;
 
-  var possibleSignature = parser.eat(signatureLength);
-
+  possibleSignature = parser.eat(signatureLength);
   if (!bufferEqual(possibleSignature, validSignature)) {
     this.delayEmit('error', new TypeError('Signature mismatch, not a PNG'));
     this.writable = false;
@@ -149,13 +156,21 @@ StreamPng.prototype._readSignature = function readSignature() {
   }
 
   this.delayEmit('signature');
-
-  // continue processing
   this.process();
+  return this;
 };
 
 /**
- * Attempt to parse a chunk.
+ * Attempt to parse a chunk. Recurses until there aren't enough bytes
+ * in the parser to be able to read a new chunk or until the end of the
+ * PNG has been reached.
+ *
+ * @emits {chunkType, Chunk}
+ * @emits {'metadata end', Chunk}
+ * @emits {'imagedata start', Chunk}
+ * @return instance
+ * @see StreamPng#_readSignature
+ * @see StreamPng#addChunk
  */
 
 StreamPng.prototype.process = function process() {
@@ -192,7 +207,6 @@ StreamPng.prototype.process = function process() {
   // list before adding the image data chunk to the internal list. Also emit
   // convenience events so the user knows when the metadata section ended.
   if (chunk.type === 'IDAT' && !this.IDAT) {
-    this.processInjections();
     this.delayEmit('metadata end');
     this.delayEmit('imagedata start');
   }
@@ -203,8 +217,10 @@ StreamPng.prototype.process = function process() {
   this.addChunk(chunk);
   this.delayEmit(chunk.type, chunk);
 
-  // continue reading if we can
-  this.process();
+  if (chunk.type !== 'IEND')
+    this.process();
+
+  return this;
 };
 
 /**
@@ -214,12 +230,13 @@ StreamPng.prototype.process = function process() {
  * If the input stream is finished parsing, processes the chunk immediately.
  *
  * The condition will be called once for every chunk that exists with the
- * parameter `existinChunk`. It should return either `true` or `false`.
+ * parameter `existingChunk`. It should return either `true` or `false`.
  * If any `condition(existingChunk)` call returns `false`, injection
  * will not occur.
  *
  * @param {Chunk} chunk
  * @param {Function} condition `function(existingChunk) {...}`
+ * @return instance
  * @see `StreamPng#processInjections`
  */
 
@@ -232,7 +249,14 @@ StreamPng.prototype.inject = function inject(chunk, condition) {
 
 
 /**
- * Process the queued injections.
+ * Process the queued injections. Inserts all chunks right
+ * after the IHDR chunk.
+ *
+ * #TODO: make sure inserting after the IHDR chunk is the most reasonable
+ * thing to do. This obviously won't work for things like IDAT chunks, but
+ * those probably shouldn't be supported by `inject()`.
+ *
+ * @return instance
  */
 
 StreamPng.prototype.processInjections = function () {
@@ -255,6 +279,7 @@ StreamPng.prototype.processInjections = function () {
   // Splice in the new chunks right after the the IHDR chunk.
   var splicer = all.splice.bind(all, 1, 0);
   splicer.apply(null, additions);
+  return this;
 };
 
 /**
@@ -330,12 +355,10 @@ StreamPng.prototype.out = function out(callback, _stream) {
   return stream;
 };
 StreamPng.prototype.destroy = function noop() {};
-
 StreamPng.SIGNATURE = Buffer([137, 80, 78, 71, 13, 10, 26, 10]);
 StreamPng.TYPE_LENGTH = 4;
 StreamPng.CRC_LENGTH = 4;
 
-StreamPng.Chunk = Chunk;
 
 module.exports = StreamPng;
 
