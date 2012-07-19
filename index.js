@@ -16,7 +16,6 @@ function StreamPng(input) {
     return new StreamPng(input);
 
   this.parser = new BitReader();
-  this.expecting = 'signature';
   this.strict = true;
   this.writable = true;
   this.readable = true;
@@ -50,6 +49,7 @@ function StreamPng(input) {
 }
 util.inherits(StreamPng, Stream);
 
+
 /**
  * Emit on the nextTick to allow for late-bound listeners.
  *
@@ -64,6 +64,47 @@ StreamPng.prototype.delayEmit = function delayEmit() {
   return this;
 };
 
+
+/**
+ * Handle data input. Re-emits incoming data as a `data` event to allow
+ * for transparent piping to another Writable Stream.
+ *
+ * @param {Buffer} data
+ * @emits {'data', Buffer} same as incoming data
+ * @returns this
+ */
+
+StreamPng.prototype.write = function write(data) {
+  if (!data) return this;
+  this.parser.write(data);
+  this.delayEmit('data', data);
+  this.process();
+  return this;
+};
+
+/**
+ * Called when either the input or output stream has ended.
+ *
+ * When the `data` argument exists, call `Stream#write` first. Sets
+ * `this.writable` to false so no more data can be piped in and
+ * `this.finished` to true so methods that require the fully parsed PNG
+ * like `StreamPng#out` and `StreamPng#inject` know that they can execute
+ * immediately instead of listening for the `end` event.
+ *
+ * @see StreamPng#write
+ * @see StreamPng#out
+ * @see StreamPng#inject
+ */
+
+StreamPng.prototype.end = function end(data) {
+  if (data) this.write(data);
+  this.writable = false;
+  this.finished = true;
+  this.delayEmit('end', this.chunks);
+  return this;
+};
+
+
 StreamPng.prototype.addChunk = function (chunk) {
   this.chunks.push(chunk);
   if (this[chunk.type]) {
@@ -73,49 +114,55 @@ StreamPng.prototype.addChunk = function (chunk) {
   }
 };
 
-StreamPng.prototype.process = function process() {
-  if (this.expecting === 'signature')
-    return this._signature();
-  if (this.expecting === 'chunk')
-    return this._chunk();
-};
+/**
+ * Try to read and process some data from the parser buffer.
+ *
+ * @see StreamPng#_readSignature
+ * @see StreamPng#_readChunk
+ */
 
 /**
  * Ensure that this is valid png by checking the signature. Emits a
  * `signature` event if successful, an `error` event if the signature
- * is not valid.
+ * is not valid. Calls `this.process` to continue processing when a valid
+ * signature is found.
+ *
+ * @emits {'signature'}
+ * @emits {'error', TypeError}
+ * @see StreamPng#process
  */
 
-StreamPng.prototype._signature = function signature() {
+StreamPng.prototype._readSignature = function readSignature() {
   var parser = this.parser;
   var validSignature = StreamPng.SIGNATURE;
+  var bufferLength = parser.getBuffer().length;
+  var signatureLength = validSignature.length;
 
-  if (parser.getBuffer().length < validSignature.length)
-    return this;
+  if (bufferLength < signatureLength) return this;
 
-  var possibleSignature = parser.eat(validSignature.length)
+  var possibleSignature = parser.eat(signatureLength);
 
   if (!bufferEqual(possibleSignature, validSignature)) {
-    this.delayEmit('error', new Error('Signature mismatch, not a PNG'));
+    this.delayEmit('error', new TypeError('Signature mismatch, not a PNG'));
     this.writable = false;
     return this;
   }
 
-  this.expecting = 'chunk';
   this.delayEmit('signature');
 
   // continue processing
   this.process();
 };
 
-StreamPng.prototype._chunk = function chunk() {
+/**
+ * Attempt to parse a chunk.
+ */
+
+StreamPng.prototype.process = function process() {
   var parser = this.parser;
 
-  if (parser.position() < 8) {
-    var err = new Error('Need to handle signature first');
-    this.delayEmit('error', err);
-    return this;
-  }
+  if (parser.position() < 8)
+    return this._readSignature();
 
   // We need to make sure there are enough bytes in the buffer to read
   // the entire chunk. If there are less than four bytes, we can't even
@@ -132,7 +179,7 @@ StreamPng.prototype._chunk = function chunk() {
   if (remaining < dataLength)
     return this;
 
-  // Until we can think of something better to do, just pass errors
+  // #XXX: Until we can think of something better to do, just pass errors
   // straight through.
   try {
     var chunk = new Chunk(parser, this.IHDR);
@@ -156,11 +203,7 @@ StreamPng.prototype._chunk = function chunk() {
   this.addChunk(chunk);
   this.delayEmit(chunk.type, chunk);
 
-  if (chunk.type === 'IEND') {
-    this.finished = true;
-    this.delayEmit('end', this.chunks);
-  }
-
+  // continue reading if we can
   this.process();
 };
 
@@ -212,24 +255,6 @@ StreamPng.prototype.processInjections = function () {
   // Splice in the new chunks right after the the IHDR chunk.
   var splicer = all.splice.bind(all, 1, 0);
   splicer.apply(null, additions);
-};
-
-/**
- * Handle data input. Re-emits incoming data as a `data` event to allow
- * for transparent piping to another Writable Stream.
- *
- * @param {Buffer} data
- * @emits {'data', Buffer} same as incoming data
- * @returns this
- */
-
-StreamPng.prototype.write = function write(data) {
-  if (!data) return this;
-  var parser = this.parser;
-  parser.write(data);
-  this.emit('data', data);
-  this.process();
-  return this;
 };
 
 /**
@@ -304,8 +329,6 @@ StreamPng.prototype.out = function out(callback, _stream) {
 
   return stream;
 };
-
-StreamPng.prototype.end = StreamPng.prototype.write;
 StreamPng.prototype.destroy = function noop() {};
 
 StreamPng.SIGNATURE = Buffer([137, 80, 78, 71, 13, 10, 26, 10]);
