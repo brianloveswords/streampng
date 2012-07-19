@@ -19,9 +19,9 @@ function StreamPng(input) {
   this.strict = true;
   this.writable = true;
   this.readable = true;
+  this.finished = false;
   this.chunks = [];
   this.injections = []
-  this.finished = !(input);
 
   // Input can be either a buffer or a stream. When we get a buffer, we can
   // pretend it's a stream by writing the entire buffer at once, as if we just
@@ -77,8 +77,8 @@ StreamPng.prototype.delayEmit = function delayEmit() {
 
 StreamPng.prototype.write = function write(data) {
   if (!data) return this;
-  this.parser.write(data);
   this.delayEmit('data', data);
+  this.parser.write(data);
   this.process();
   return this;
 };
@@ -215,6 +215,7 @@ StreamPng.prototype.process = function process() {
   // meaning that we don't store the chunks and only emit them. Useful if
   // the user doesn't care about re-writing the PNG.
   this.addChunk(chunk);
+  this.delayEmit('chunk', chunk);
   this.delayEmit(chunk.type, chunk);
 
   if (chunk.type !== 'IEND')
@@ -240,9 +241,12 @@ StreamPng.prototype.process = function process() {
  * @see `StreamPng#processInjections`
  */
 
-StreamPng.prototype.inject = function inject(chunk, condition) {
+StreamPng.prototype.inject = function inject(chunk, opts, condition) {
+  var defaults = { test: 'same' };
+  if (typeof opts === 'function')
+    condition = opts, opts = defaults;
   if (!condition) condition = true;
-  this.injections.push({ chunk: chunk, condition: condition });
+  this.injections.push({ chunk: chunk, opts: opts, condition: condition });
   if (this.finished) this.processInjections();
   return this;
 };
@@ -266,11 +270,19 @@ StreamPng.prototype.processInjections = function () {
   var idx;
 
   this.injections.forEach(function (chunk) {
-    if (chunk.condition === true)
+    var options = chunk.opts;
+    var chunkType = chunk.chunk.type;
+    var condition = chunk.condition;
+
+    if (condition === true)
       return additions.push(chunk.chunk);
 
-    for (idx = 0; idx < all.length; idx++)
-      if (!chunk.condition(all[idx])) return false;
+    for (idx = 0; idx < all.length; idx++) {
+      if (options.test === 'same' && all[idx].type !== chunkType)
+        continue;
+      if (condition(all[idx]) === false)
+        return false;
+    }
 
     additions.push(chunk.chunk);
   });
@@ -292,6 +304,7 @@ StreamPng.prototype.processInjections = function () {
  *     console.log('done');
  *    });
  * });
+ * ```
  *
  * Stream example:
  * ```

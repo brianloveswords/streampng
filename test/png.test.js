@@ -1,6 +1,7 @@
 var fs = require('fs');
 var test = require('tap').test;
 var StreamPng = require('..');
+var http = require('http');
 
 var FILENAME = __dirname + '/pngs/tEXt-iTXt.png';
 var SAMPLE_BUFFER = fs.readFileSync(FILENAME);
@@ -211,10 +212,9 @@ test('conditional chunk injection', function (t) {
   var expect = ['IHDR', 'tEXt', 'iTXt', 'IDAT', 'IEND'];
 
   png.inject(newChunk, function (existing) {
-    if (existing.type === 'tEXt' &&
-        existing.keyword === 'Software')
+    t.same(existing.type, 'tEXt');
+    if (existing.keyword === 'Software')
       return false;
-    return true;
   });
 
   png.on('end', function () {
@@ -247,4 +247,41 @@ test('should be unwritable after stream is done', function (t) {
     t.same(png.writable, false)
     t.end();
   });
+});
+
+test('passthrough pipe chaining', function (t) {
+  var png = StreamPng();
+  var instream = newStream();
+  var outstream = fs.createWriteStream('sample.passthrough.png');
+
+  instream.pipe(png).pipe(outstream);
+
+  outstream.on('close', function () {
+    var buffer = fs.readFileSync('sample.passthrough.png');
+    t.same(buffer, SAMPLE_BUFFER);
+    t.end();
+  });
+});
+
+test('from the wire', function (t) {
+  var server = http.createServer(function (_, r) {
+    r.write(SAMPLE_BUFFER);
+    r.end();
+    server.close();
+  });
+  var socketPath = __dirname + '/test-server.sock';
+  var png = StreamPng();
+
+  server.on('listening', function () {
+    var opts = {socketPath: socketPath, path: '/sample.png'};
+    var req = http.request(opts, function (res) { res.pipe(png) });
+    req.end();
+  });
+
+  png.out(function (buffer) {
+    t.same(buffer, SAMPLE_BUFFER);
+    t.end();
+  });
+
+  server.listen(socketPath);
 });

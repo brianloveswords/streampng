@@ -138,3 +138,16 @@ creationtest('pCAL');
 creationtest('sCAL');
 creationtest('gIFg');
 creationtest('gIFx');
+
+test('Chunk#set', function (t) {
+  var textChunk = Chunk.tEXt({ keyword: 'wut' });
+  textChunk.set('text', 'lol');
+  t.same(textChunk.text, 'lol');
+  t.end();
+});
+
+test('Chunk#get', function (t) {
+  var textChunk = Chunk.tEXt({ keyword: 'wut' });
+  t.same(textChunk.get('keyword'), 'wut');
+  t.end();
+});
