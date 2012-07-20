@@ -159,10 +159,50 @@ png.out().pipe(infile).once('close', function() {
 });
 ```
 
-# Chunks
+# Common chunk methods
 
 All chunk constructors take one argument, `fields`, which should be an
 object defining the fields necessary for the chunk.
+
+## Chunk#set(*key, value*)
+**@returns** `instance`<br>
+***
+Set a chunk attribute. Use this rather than directly accessing
+attributes to ensure that cached buffers are correctly invalidated.
+
+
+## Chunk#get(*key*)
+**@returns** `value`<br>
+***
+Gets a chunk attribute.
+
+
+## Chunk#inflate([*callback*])
+**@returns** `instance`<br>
+***
+**Callback**: `function (err, buffer) { }`
+
+For chunks that have compressed fields (`iTXt`, `zTXt`, `iCCP`),
+inflates the compressed data, sets the appropriate attribute on the
+chunk (`text` for textual data, `profile` for ICC profile data) and
+executes callback either either the zlib error or the inflated buffer.
+
+
+## Chunk#length()
+**@returns** `Integer`<br>
+***
+ Length of the data portion of the chunk. For the length of the entire
+chunk including length, type and CRC segments, add `12` to the result.
+
+
+## Chunk#getComputedCrc()
+**@returns** `Buffer`<br>
+***
+ Calculate the CRC for the chunk.
+
+# Specific chunk attributes
+All incoming chunks will have `type` and `crc` fields.
+
 
 ## Chunk.IHDR, Chunk.ImageHeader
 - `width`: Width of the image in pixels
