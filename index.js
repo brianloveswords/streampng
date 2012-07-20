@@ -166,8 +166,8 @@ StreamPng.prototype._readSignature = function readSignature() {
  * PNG has been reached.
  *
  * @emits {chunkType, Chunk}
- * @emits {'metadata end', Chunk}
- * @emits {'imagedata start', Chunk}
+ * @emits {'chunk', Chunk}
+ * @emits {'imagedata begin'}
  * @return instance
  * @see StreamPng#_readSignature
  * @see StreamPng#addChunk
@@ -206,10 +206,8 @@ StreamPng.prototype.process = function process() {
   // When we detect the first image data chunk, process the chunk injection
   // list before adding the image data chunk to the internal list. Also emit
   // convenience events so the user knows when the metadata section ended.
-  if (chunk.type === 'IDAT' && !this.IDAT) {
-    this.delayEmit('metadata end');
-    this.delayEmit('imagedata start');
-  }
+  if (chunk.type === 'IDAT' && !this.IDAT)
+    this.delayEmit('imagedata begin');
 
   // #TODO: Give an option for reading `transparently`, to save memory,
   // meaning that we don't store the chunks and only emit them. Useful if
