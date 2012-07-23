@@ -1,8 +1,8 @@
 {
   "author": "Brian J. Brennan <brianloveswords@gmail.com> (http://bjb.io)",
   "name": "streampng",
-  "description": "Streaming PNG encoder/decoder, compatible with PNGEXT 1.4.0 (not ready yet)",
-  "version": "0.0.0",
+  "description": "Streaming PNG encoder/decoder, compatible with latest PNG extensions (PNGEXT 1.4.0)",
+  "version": "0.0.1",
   "homepage": "https://github.com/brianloveswords/streampng",
   "repository": {
     "type": "git",
@@ -16,8 +16,8 @@
     "buffer-crc32": "~0.1.1",
     "buffer-equal": "~0.0.0",
     "errs": "git://github.com/brianloveswords/errs.git#d1756bbf93706ab6a56334e59f7b3e39b31730bb",
-    "bitwriter": "0.0.2",
-    "bitreader": "0.0.1"
+    "bitwriter": "~0.0.4",
+    "bitreader": "~0.0.1"
   },
   "devDependencies": {
     "tap": "~0.2.5"
