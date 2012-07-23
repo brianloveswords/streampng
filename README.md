@@ -62,7 +62,7 @@ Emitted when a chunk of a certain type has been parsed. For example,
 
 ```js
 // do something with each tEXt chunk
-png.on('tEXt', function() { ... })
+png.on('tEXt', function(chunk) { ... })
 ```
 
 ## Event: 'imagedata begin'
