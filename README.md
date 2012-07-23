@@ -1,7 +1,22 @@
-Mess around with PNGs, get some chunks, jam some data in there.
+# streampng [![Build Status](https://secure.travis-ci.org/brianloveswords/streampng.png?branch=master)](http://travis-ci.org/brianloveswords/streampng)
+
+Reading, modifying and (experimentally) writing PNGs, chunk by chunk.
+
+## Install
+
+```bash
+$ npm install streampng
+```
+
+## Tests
+
+Requires [node-tap](/isaacs/node-tap).
+
+```bash
+$ npm test
+```
 
 # API
-
 
 ## StreamPng([*streamOrBuffer*])
 **@returns** `instance`<br>
