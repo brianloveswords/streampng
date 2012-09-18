@@ -160,7 +160,7 @@ callback style or stream style:
 
 Callback example:
 ```js
-png.out(function (buf) {
+png.out(function (err, buf) {
   fs.writeFile('example.png', buf, function() {
     console.log('done');
    });

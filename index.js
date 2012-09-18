@@ -350,7 +350,7 @@ StreamPng.prototype.out = function out(callback, _stream) {
     buffers.unshift(signature);
     output = Buffer.concat(buffers)
 
-    if (callback) callback(output);
+    if (callback) callback(null, output);
     process.nextTick(function () {
       stream.emit('data', output);
       stream.emit('end', output);

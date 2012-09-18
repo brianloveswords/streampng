@@ -2,7 +2,7 @@
   "author": "Brian J. Brennan <brianloveswords@gmail.com> (http://bjb.io)",
   "name": "streampng",
   "description": "Streaming PNG encoder/decoder, compatible with latest PNG extensions (PNGEXT 1.4.0)",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "homepage": "https://github.com/brianloveswords/streampng",
   "repository": {
     "type": "git",

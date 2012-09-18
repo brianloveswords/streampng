@@ -100,7 +100,7 @@ test('reading chunks', function (t) {
 test('writing out', function (t) {
   var png = StreamPng(newStream());
   png.on('end', function () {
-    png.out(function (output) {
+    png.out(function (err, output) {
       t.same(output, SAMPLE_BUFFER);
       t.end();
     });
@@ -109,7 +109,7 @@ test('writing out', function (t) {
 
 test('writing out, not waiting for end event', function (t) {
   var png = StreamPng(newStream());
-  png.out(function (output) {
+  png.out(function (err, output) {
     t.same(output, SAMPLE_BUFFER);
     t.end();
   });
@@ -121,7 +121,7 @@ test('writing out with modified chunks', function (t) {
     chunk.set('keyword', 'Lolware');
   });
 
-  png.out(function (output) {
+  png.out(function (err, output) {
     var modpng = StreamPng(output);
     modpng.on('tEXt', function (chunk) {
       t.same(chunk.keyword, 'Lolware');
@@ -137,7 +137,7 @@ test('writing out, stream style', function (t) {
   var outstream = png.out();
   outstream.pipe(instream).on('close', function () {
     var png = StreamPng(fs.readFileSync(outfile));
-    png.out(function (buf) {
+    png.out(function (err, buf) {
       t.same(buf, SAMPLE_BUFFER);
       t.end();
     });
@@ -160,7 +160,7 @@ test('streaming out concurrently with transparent stream', function (t) {
   t.plan(2);
   direct.on('close', function () {
     var png = StreamPng(fs.readFileSync(fdirect));
-    png.out(function (buf) {
+    png.out(function (err, buf) {
       t.same(buf, SAMPLE_BUFFER);
     });
   });
@@ -189,7 +189,7 @@ test('injecting a new chunk', function (t) {
 
   png.inject(itxt);
 
-  png.out(function (buffer) {
+  png.out(function (err, buffer) {
     t.plan(2);
     var modpng = StreamPng(buffer);
     modpng.on('iTXt', function (chunk) {
@@ -278,7 +278,7 @@ test('from the wire', function (t) {
     req.end();
   });
 
-  png.out(function (buffer) {
+  png.out(function (err, buffer) {
     t.same(buffer, SAMPLE_BUFFER);
     t.end();
   });
