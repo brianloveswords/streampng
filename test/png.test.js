@@ -4,10 +4,12 @@ var StreamPng = require('..');
 var http = require('http');
 
 var FILENAME = __dirname + '/pngs/tEXt-iTXt.png';
+var BAD_CHUNK_FILENAME = __dirname + '/pngs/unknown-chunk.png';
 var SAMPLE_BUFFER = fs.readFileSync(FILENAME);
 function newStream(opts) {
   opts = opts || {}
-  return fs.createReadStream(FILENAME, opts);
+  var file = opts.file || FILENAME;
+  return fs.createReadStream(file, opts);
 }
 
 test('reading the png signature', {skip: false}, function (t) {
@@ -96,6 +98,18 @@ test('reading chunks', function (t) {
     png.once('error', function () { t.fail('should not emit error'); });
   });
 });
+
+test('reading a file with unknown chunks', function (t) {
+  var filestream = newStream({ file: BAD_CHUNK_FILENAME });
+  var png = new StreamPng(filestream);
+  png.once('end', function (chunks) {
+    t.same(chunks.filter(function (chunk) {
+      return chunk.type == 'roFL';
+    }).length, 1);
+    t.end();
+  });
+});
+
 
 test('writing out', function (t) {
   var png = StreamPng(newStream());
