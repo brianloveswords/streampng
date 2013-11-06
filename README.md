@@ -226,8 +226,8 @@ All incoming chunks will have `type` and `crc` fields.
   - `IHDR.GREYSCALE`
   - `IHDR.TRUECOLOUR`
   - `IHDR.INDEXED_COLOUR`
-  - `IHDR.GREYSCALE_ALPHA` 
-  - `IHDR.TRUECOLOUR_ALPHA` 
+  - `IHDR.GREYSCALE_ALPHA`
+  - `IHDR.TRUECOLOUR_ALPHA`
 - `bitDepth`: The following values are valid depending on colour type:
   - greyscale: `[1, 2, 4, 8 ,16]`
   - truecolour: `[8, 16]`
@@ -514,9 +514,7 @@ stereo pair of subimages within a single PNG image.
   - `sTER.CROSS_FUSE`: right-eye image appears at the left and the
     left-eye image appears at the right, suitable for cross-eyed free
     viewing.
-    
+
   - `sTER.DIVERGING_FUSE`: left-eye image appears at the left and the
     right-eye image appears at the right, suitable for divergent
     (wall-eyed) free viewing.
-    
-
