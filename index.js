@@ -173,7 +173,7 @@ StreamPng.prototype._readSignature = function readSignature() {
  * @see StreamPng#addChunk
  */
 
-StreamPng.prototype.process = function process() {
+StreamPng.prototype.process = function () {
   var parser = this.parser;
 
   if (parser.position() < 8)
